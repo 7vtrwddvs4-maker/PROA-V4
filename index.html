@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PROA v4.0 - Hospital El Pino</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+
+  <script type="importmap">
+    {
+      "imports": {
+        "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
+        "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"
+      }
+    }
+  </script>
+</head>
+<body>
+
+  <!-- PANTALLA DE LOGIN CRIPTOGRÁFICO -->
+  <div id="vista-login">
+    <div class="login-card">
+      <div class="hep-logo" style="margin: 0 auto 12px; width: 50px; height: 50px; font-size: 9px;">HOSPITAL<br>EL PINO</div>
+      <h2 style="font-size: 20px; color: #1e3a8a; margin-bottom: 4px;">PROA v4.0</h2>
+      <p style="font-size: 12px; color: #64748b; margin-bottom: 18px;">Bóveda Clínica Cifrada (AES-256)</p>
+      
+      <div style="text-align: left; margin-bottom: 12px;">
+        <label style="font-size: 10px; font-weight: 800; color: #64748b;">CORREO AUTORIZADO</label>
+        <input type="email" id="login-email" class="proa-input" style="width: 100%; margin-top: 4px;" placeholder="usuario@gmail.com">
+      </div>
+      <div style="text-align: left; margin-bottom: 18px;">
+        <label style="font-size: 10px; font-weight: 800; color: #64748b;">CONTRASEÑA DE TURNO</label>
+        <input type="password" id="login-pass" class="proa-input" style="width: 100%; margin-top: 4px;" placeholder="••••••••">
+      </div>
+      <button id="btn-login" class="btn-registrar-proa" onclick="iniciarSesionApp()">
+        <span class="material-icons-round" style="font-size: 18px;">lock_open</span> DESBLOQUEAR SISTEMA
+      </button>
+      <div id="login-error" style="color: #ef4444; font-size: 12px; margin-top: 10px; display: none;"></div>
+    </div>
+  </div>
+
+  <!-- MODAL COMPLETO: PROA 4.0 AUDITORÍA CLÍNICA (IDÉNTICO A TUS CAPTURAS) -->
+  <div id="modal-visacion-qf" style="display: none;">
+    <div class="auditoria-modal-window">
+      
+      <!-- Cabecera Modal -->
+      <div class="auditoria-modal-header">
+        <div class="auditoria-header-title">
+          <span class="material-icons-round" style="font-size: 22px;">fact_check</span>
+          <span>PROA 4.0 Auditoría Clínica</span>
+        </div>
+        <button onclick="cerrarModalVisacion()" style="border:none; background:none; cursor:pointer; font-size:20px; color:#64748b;">✕</button>
+      </div>
+
+      <!-- Cuerpo Scrollable -->
+      <div class="auditoria-modal-body">
+        
+        <!-- 1. BÚSQUEDA E IDENTIFICACIÓN DE PACIENTE -->
+        <div class="auditoria-section-card">
+          <div class="section-heading" style="margin-bottom: 12px;">
+            <span class="material-icons-round" style="font-size: 18px;">badge</span>
+            <span>Búsqueda de Paciente</span>
+          </div>
+
+          <div class="form-grid-top">
+            <div class="field-group">
+              <label>RUT O NOMBRE</label>
+              <input type="text" id="aud-rut" class="proa-input" placeholder="Buscar RUT o Nombre..." autocomplete="off" oninput="buscarPacienteEnModalAuditoria(this)">
+              <div id="aud-dropdown-sug" class="sugerencias-dropdown"></div>
+            </div>
+            <div class="field-group">
+              <label>NOMBRES</label>
+              <input type="text" id="aud-nombres" class="proa-input">
+            </div>
+            <div class="field-group">
+              <label>APELLIDOS</label>
+              <input type="text" id="aud-apellidos" class="proa-input">
+            </div>
+          </div>
+
+          <div class="form-grid-top" style="grid-template-columns: 1.8fr 1fr; margin-bottom: 0;">
+            <div class="field-group">
+              <label>SERVICIO ACTUAL</label>
+              <input type="text" id="aud-servicio" list="dl-servicios" class="proa-input">
+            </div>
+            <div class="field-group">
+              <label>CAMA</label>
+              <input type="text" id="aud-cama" class="proa-input">
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. ACORDEÓN: HISTORIAL CLÍNICO (TRATAMIENTOS FINALIZADOS) -->
+        <div>
+          <div class="historial-accordion-bar" onclick="toggleAcordeonHistorialModal()">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="material-icons-round" style="font-size: 18px;">history</span>
+              <span id="titulo-acordeon-historial">Historial Clínico (Tratamientos Finalizados)</span>
+            </div>
+            <span class="material-icons-round" id="icono-acordeon-hist">expand_more</span>
+          </div>
+          <div class="historial-accordion-content" id="contenedor-historial-modal"></div>
+        </div>
+
+        <!-- 3. AUDITORÍA DE TRATAMIENTOS ACTIVOS -->
+        <div class="auditoria-section-card">
+          <div class="section-heading">
+            <span class="material-icons-round" style="font-size: 18px;">playlist_add_check</span>
+            <span>Auditoría de Tratamientos Activos</span>
+          </div>
+          <div class="section-subheading">ACTUALIZAR O INGRESAR PRESCRIPCIÓN</div>
+
+          <div id="contenedor-tarjetas-activas-qf"></div>
+
+          <button type="button" class="btn-heredar-nuevo" onclick="iniciarNuevoTratamientoHeredado()">
+            <span class="material-icons-round" style="font-size: 17px;">add_circle</span>
+            <span>Iniciar Nuevo Tratamiento (Heredar Datos)</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Pie Fijo: Botón Azul Guardar Visación y Sincronizar -->
+      <div class="auditoria-modal-footer">
+        <button type="button" class="btn-guardar-visacion-azul" id="btn-submit-visacion" onclick="guardarCambiosVisacionQF()">
+          <span class="material-icons-round" style="font-size: 19px;">save</span>
+          <span>GUARDAR VISACIÓN Y SINCRONIZAR</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- LAYOUT PRINCIPAL -->
+  <div class="app-layout">
+    
+    <!-- COLUMNA IZQUIERDA: DASHBOARD DE INGRESO + MATRIZ -->
+    <div class="main-workspace">
+      
+      <!-- 1. BARRA INSTITUCIONAL -->
+      <header class="top-header">
+        <div class="brand-group">
+          <div class="hep-logo">Hospital<br>El Pino</div>
+          <div class="app-title">PROA v4.0 • FARMACIA CLÍNICA</div>
+        </div>
+        <div class="header-right">
+          <button class="btn-add-med" style="margin:0; background:#eff6ff; border-color:#bfdbfe;" onclick="abrirModalVisacionVacio()">
+            <span class="material-icons-round" style="font-size:16px;">fact_check</span>
+            <span>Auditoría Visación (QFs)</span>
+          </button>
+          <div class="user-info">
+            <span class="user-name" id="header-user-name">Francisco Barra</span>
+            <a class="logout-link" onclick="cerrarSesionApp()">Cerrar Sesión (Cambio de Turno)</a>
+          </div>
+        </div>
+      </header>
+
+      <!-- 2. VENTANA PROA INGRESO -->
+      <section class="ingreso-window">
+        <div class="ingreso-header">
+          <div class="ingreso-title-wrap">
+            <span class="material-icons-round" style="color: #334155;">post_add</span>
+            <span>PROA 4.0 Ingreso</span>
+          </div>
+          <div class="status-pill-ready" id="status-ingreso-pill">
+            <span>● Sistema Listo</span>
+            <span style="font-weight: 500; color: #475569;">| Esperando ingresos...</span>
+          </div>
+          <button class="btn-minimize" title="Minimizar / Expandir Panel de Ingreso" onclick="toggleMinimizarIngreso()">−</button>
+        </div>
+
+        <div class="ingreso-body" id="cuerpo-formulario-ingreso">
+          
+          <div class="section-block">
+            <div class="section-heading">
+              <span class="material-icons-round" style="font-size: 17px;">badge</span>
+              <span>Identificación del Paciente</span>
+            </div>
+            
+            <div class="form-grid-top" style="margin-top: 10px;">
+              <div class="field-group">
+                <label>RUT O NOMBRE</label>
+                <input type="text" id="in-rut" class="proa-input nav-field" placeholder="Buscar o Ingresar..." autocomplete="off" oninput="alEscribirRutONombre(this)" onkeydown="manejarTecladoSugerenciasRut(event)">
+                <div id="dropdown-sugerencias" class="sugerencias-dropdown"></div>
+              </div>
+              <div class="field-group">
+                <label>NOMBRES</label>
+                <input type="text" id="in-nombres" class="proa-input nav-field" placeholder="Nombres del paciente">
+              </div>
+              <div class="field-group">
+                <label>APELLIDOS</label>
+                <input type="text" id="in-apellidos" class="proa-input nav-field" placeholder="Apellidos del paciente">
+              </div>
+            </div>
+
+            <div class="form-grid-second">
+              <div class="field-group">
+                <label>SERVICIO ACTUAL</label>
+                <input type="text" id="in-servicio" data-ac="servicios" class="proa-input nav-field" placeholder="Escriba o elija..." autocomplete="off">
+              </div>
+              <div class="field-group">
+                <label>CAMA (LIBRE)</label>
+                <input type="text" id="in-cama" class="proa-input nav-field" placeholder="EJ: 15, PASILLO" autocomplete="off">
+              </div>
+              <div class="field-group">
+                <label>FECHA INGRESO (AUTO)</label>
+                <input type="date" id="in-fecha" class="proa-input" tabindex="-1">
+              </div>
+              <div class="field-group">
+                <label>DIGITADOR RESPONSABLE</label>
+                <input type="text" id="in-digitador" data-ac="digitadores" class="proa-input nav-field" placeholder="Su nombre..." autocomplete="off">
+              </div>
+            </div>
+          </div>
+
+          <div class="section-block">
+            <div class="section-heading">
+              <span class="material-icons-round" style="font-size: 17px;">medication</span>
+              <span>Prescripción Antimicrobiana</span>
+            </div>
+            <div class="section-subheading">ESQUEMA DE TRATAMIENTO INICIAL</div>
+
+            <div id="contenedor-filas-medicamentos"></div>
+
+            <button type="button" id="btn-agregar-med" class="btn-add-med nav-field" onclick="agregarFilaMedicamento(true)">
+              <span class="material-icons-round" style="font-size: 16px;">add_circle</span>
+              <span>Agregar otro medicamento</span>
+            </button>
+          </div>
+
+          <button type="button" id="btn-submit-ingreso" class="btn-registrar-proa nav-field" onclick="registrarEnProa()">
+            <span class="material-icons-round" style="font-size: 19px;">cloud_upload</span>
+            <span>REGISTRAR EN PROA</span>
+          </button>
+
+        </div>
+      </section>
+
+      <!-- 3. MATRIZ PROA DE 3 ZONAS -->
+      <section class="matrix-container">
+        <div class="matrix-toolbar">
+          <span>📋 MATRIZ GENERAL PROA (VISTA EN TIEMPO REAL)</span>
+          <span id="contador-matriz" style="color: #0284c7;">0 registros</span>
+        </div>
+        <div class="table-scroll">
+          <table class="proa-table">
+            <thead>
+              <tr>
+                <th class="th-azul">ESTADO</th>
+                <th class="th-azul">ANTIMICROBIANO</th>
+                <th class="th-azul">CARGA</th>
+                <th class="th-azul">DOSIS</th>
+                <th class="th-azul">FRECUENCIA</th>
+                <th class="th-azul">FECHA</th>
+                <th class="th-azul">T. GRACIA</th>
+                <th class="th-azul">T. AUTORIZ.</th>
+                <th class="th-azul">SERVICIO</th>
+                <th class="th-azul">CAMA</th>
+                <th class="th-azul">NOMBRE</th>
+                <th class="th-azul">APELLIDO</th>
+                <th class="th-azul">RUT</th>
+                <th class="th-azul">DIGITADOR</th>
+                <!-- ZONA VERDE (W a Z) -->
+                <th class="th-verde">DIAGNÓSTICO</th>
+                <th class="th-verde">TIPO DE TRATAMIENTO</th>
+                <th class="th-verde">TIPO DE TERAPIA</th>
+                <th class="th-verde">LUGAR DE INFECCIÓN</th>
+                <!-- ZONA AMARILLA (AA a AG) -->
+                <th class="th-amarilla">TRATAMIENTO</th>
+                <th class="th-amarilla">DIAS DE APROBACIÓN</th>
+                <th class="th-amarilla">USO ADECUADO DE ANTIMICROBIANO</th>
+                <th class="th-amarilla">OBSERVACIONES</th>
+                <th class="th-amarilla">VISADOR</th>
+                <th class="th-amarilla">FECHA</th>
+                <th class="th-amarilla">PACIENTE NO ENCONTRADO</th>
+              </tr>
+            </thead>
+            <tbody id="proa-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- COLUMNA DERECHA: CENTRO DE BÚSQUEDA PROA -->
+    <aside class="search-sidebar">
+      <div class="sidebar-top">
+        <div class="sidebar-brand-row">
+          <h3>PROA 4.0</h3>
+          <button onclick="cargarMatrizEnVivo()" style="border:none; background:#f1f5f9; border-radius:8px; padding:5px; cursor:pointer;" title="Refrescar">
+            <span class="material-icons-round" style="font-size: 18px; color: #0284c7;">sync</span>
+          </button>
+        </div>
+
+        <div class="segmented-control">
+          <button class="seg-btn active" id="tab-btn-pacientes" onclick="cambiarModoBusqueda('PACIENTES')">Pacientes</button>
+          <button class="seg-btn" id="tab-btn-servicios" onclick="cambiarModoBusqueda('SERVICIOS')">Servicios</button>
+        </div>
+
+        <div class="search-input-wrapper">
+          <span class="material-icons-round search-icon-left">person_search</span>
+          <input type="text" id="input-buscador-lateral" placeholder="Buscar por RUT o Nombre..." oninput="renderizarBarraLateral()">
+          <button class="search-clear-btn" onclick="limpiarBuscadorLateral()">✕</button>
+        </div>
+
+        <div class="coincidencias-count" id="texto-coincidencias">0 coincidencias</div>
+      </div>
+
+      <div class="sidebar-cards-scroll" id="contenedor-tarjetas-buscador"></div>
+    </aside>
+
+  </div>
+
+  <!-- DATALISTS OFICIALES PARA AUTOCOMPLETADO -->
+  <datalist id="dl-antimicrobianos"></datalist>
+  <datalist id="dl-dosis"></datalist>
+  <datalist id="dl-frecuencias"></datalist>
+  <datalist id="dl-servicios"></datalist>
+  <datalist id="dl-digitadores"></datalist>
+  <datalist id="dl-visadores"></datalist>
+  <datalist id="dl-diagnosticos"></datalist>
+  <datalist id="dl-tipo-tto">
+    <option value="INICIO">
+    <option value="CONTINUACIÓN">
+  </datalist>
+  <datalist id="dl-tipo-terapia">
+    <option value="EMPIRICA">
+    <option value="ESPECIFICA">
+    <option value="PROFILACTICA">
+  </datalist>
+  <datalist id="dl-lugar-inf">
+    <option value="EXTRAHOSPITALARIA">
+    <option value="INTRAHOSPITALARIA">
+  </datalist>
+  <datalist id="dl-estado-clinico">
+    <option value="AUTORIZADO">
+    <option value="SUSPENDIDO">
+    <option value="SUSPENDIDO POR OTRO">
+    <option value="CAMBIO DE TRATAMIENTO">
+    <option value="PACIENTE NO ENCONTRADO">
+    <option value="FALLECIDO">
+    <option value="TRASLADO">
+  </datalist>
+  <datalist id="dl-uso-adecuado">
+    <option value="CAMBIO DE ATM">
+    <option value="AJUSTE POR ANTIBIOGRAMAS">
+    <option value="CAMBIO POR EVOLUCION DESFAVORABLE">
+    <option value="DESESCALAMIENTO DE TERAPIA">
+    <option value="AJUSTE DE DOSIS">
+    <option value="AJUSTE DIAS DE TRATAMIENTO">
+  </datalist>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

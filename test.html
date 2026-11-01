@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Prueba de Conexión PROA v4</title>
+  <!-- Permite usar import { ... } from "firebase/app" en el navegador -->
+  <script type="importmap">
+    {
+      "imports": {
+        "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
+        "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"
+      }
+    }
+  </script>
+</head>
+<body style="font-family: sans-serif; padding: 20px;">
+  <h2>Prueba de Conexión y Cifrado PROA v4</h2>
+  <p>Abre la consola del navegador (<kbd>Cmd + Option + J</kbd> o <kbd>F12</kbd>) para ver los resultados.</p>
+
+  <script type="module">
+    import { loginUsuario } from "./auth.js";
+    import { inicializarCatalogosSistema, obtenerCatalogosSistema } from "./proaService.js";
+
+    async function cargarListas() {
+      console.log("Autenticando...");
+      const login = await loginUsuario("barra.francisco30@gmail.com", "tsubasa314");
+      if (!login.exito) return console.error(login.mensaje);
+
+      console.log("Inyectando catálogos maestros en Firestore...");
+      await inicializarCatalogosSistema();
+
+      console.log("Leyendo catálogos desde la nube...");
+      const listas = await obtenerCatalogosSistema();
+      console.log("✅ Catálogos listos para los formularios:", listas);
+    }
+
+    cargarListas();
+  </script>
+</body>
+</html>
