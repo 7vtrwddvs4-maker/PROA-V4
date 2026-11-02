@@ -885,3 +885,111 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
   opacity: 0.75;
   font-weight: 500;
 }
+
+/* ================= MEJORAS: RECORDAR CUENTA, FILTROS MATRIZ Y PÍLDORAS SERVICIO ================= */
+.remember-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  user-select: none;
+}
+
+.remember-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #007aff;
+  cursor: pointer;
+}
+
+.matrix-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 14px;
+  background: #f1f5f9;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.matrix-filter-control {
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1e293b;
+  background: #ffffff;
+  outline: none;
+}
+
+.matrix-filter-control:focus {
+  border-color: #007aff;
+}
+
+.local-safe-badge {
+  margin-left: auto;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Botonera de Servicios en Barra Lateral Derecha */
+.servicios-chips-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+  max-height: 135px;
+  overflow-y: auto;
+  padding: 4px 2px;
+}
+
+.srv-chip {
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  border-radius: 8px;
+  padding: 5px 9px;
+  font-size: 10.5px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: 0.15s;
+}
+
+.srv-chip:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.srv-chip.active {
+  background: #007aff;
+  color: #ffffff;
+  border-color: #007aff;
+}
+
+.srv-chip-count {
+  background: rgba(0, 0, 0, 0.08);
+  padding: 1px 5px;
+  border-radius: 6px;
+  font-size: 9.5px;
+}
+
+.srv-chip.active .srv-chip-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}

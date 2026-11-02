@@ -271,7 +271,8 @@ export async function obtenerMatrizCompletaDescifrada() {
         uso_adecuado: t.uso_adecuado || "",
         visador: t.visador || "",
         fecha_visado: t.fecha_visado || "",
-        paciente_no_encontrado: t.paciente_no_encontrado || ""
+        paciente_no_encontrado: t.paciente_no_encontrado || "",
+        creado_ms: t.creado_el && t.creado_el.toMillis ? t.creado_el.toMillis() : 0
       });
     }
   }

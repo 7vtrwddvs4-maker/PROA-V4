@@ -31,10 +31,14 @@
         <label style="font-size: 10px; font-weight: 800; color: #64748b;">CORREO AUTORIZADO</label>
         <input type="email" id="login-email" class="proa-input" style="width: 100%; margin-top: 4px;" placeholder="usuario@gmail.com">
       </div>
-      <div style="text-align: left; margin-bottom: 18px;">
+      <div style="text-align: left; margin-bottom: 12px;">
         <label style="font-size: 10px; font-weight: 800; color: #64748b;">CONTRASEÑA DE TURNO</label>
-        <input type="password" id="login-pass" class="proa-input" style="width: 100%; margin-top: 4px;" placeholder="••••••••">
+        <input type="password" id="login-pass" class="proa-input" style="width: 100%; margin-top: 4px;" placeholder="••••••••" onkeydown="if(event.key==='Enter') iniciarSesionApp()">
       </div>
+      <label class="remember-row">
+        <input type="checkbox" id="login-remember" checked>
+        <span>Recordar mi cuenta en este computador</span>
+      </label>
       <button id="btn-login" class="btn-registrar-proa" onclick="iniciarSesionApp()">
         <span class="material-icons-round" style="font-size: 18px;">lock_open</span> DESBLOQUEAR SISTEMA
       </button>
@@ -239,11 +243,45 @@
         </div>
       </section>
 
-      <!-- 3. MATRIZ PROA DE 3 ZONAS -->
+      <!-- 3. MATRIZ PROA DE 3 ZONAS CON FILTROS LOCALES EN BRUTO -->
       <section class="matrix-container">
         <div class="matrix-toolbar">
           <span>📋 MATRIZ GENERAL PROA (VISTA EN TIEMPO REAL)</span>
-          <span id="contador-matriz" style="color: #0284c7;">0 registros</span>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="local-safe-badge" title="Filtrar aquí solo cambia tu pantalla, no interrumpe a otros usuarios">
+              <span class="material-icons-round" style="font-size:13px;">visibility</span> Filtro personal (No afecta al resto)
+            </span>
+            <span id="contador-matriz" style="color: #0284c7; font-weight: 800;">0 registros</span>
+          </div>
+        </div>
+
+        <div class="matrix-filter-bar">
+          <select id="filtro-matriz-ventana" class="matrix-filter-control" onchange="renderizarTablaMatriz()" title="Evita saturar la pantalla ocultando antiguos">
+            <option value="ACTIVOS_7D">⚡ Vigentes + Últimos 7 días (Sin saturación)</option>
+            <option value="SOLO_VIGENTES">🟢 Solo Tratamientos Vigentes</option>
+            <option value="ULTIMOS_30D">📅 Últimos 30 días</option>
+            <option value="TODOS">📚 Base Completa en Bruto (Todos)</option>
+          </select>
+
+          <select id="filtro-matriz-estado" class="matrix-filter-control" onchange="renderizarTablaMatriz()">
+            <option value="TODOS">Estado: Todos</option>
+            <option value="SOLICITUD">🟠 SOLICITUD</option>
+            <option value="APROBADO">🟢 APROBADO</option>
+            <option value="RECHAZADO">🔴 RECHAZADO</option>
+          </select>
+
+          <select id="filtro-matriz-servicio" class="matrix-filter-control" onchange="renderizarTablaMatriz()">
+            <option value="TODOS">Servicio: Todos</option>
+          </select>
+
+          <select id="filtro-matriz-orden" class="matrix-filter-control" onchange="renderizarTablaMatriz()">
+            <option value="ASC">⬇️ Orden: Nuevos abajo (Estilo Excel)</option>
+            <option value="DESC">⬆️ Orden: Nuevos arriba</option>
+          </select>
+
+          <input type="text" id="filtro-matriz-texto" class="matrix-filter-control" style="flex-grow:1; min-width:170px;" placeholder="🔍 Filtrar matriz (RUT, Paciente, ATB, Diagnóstico, QF)..." oninput="renderizarTablaMatriz()">
+
+          <button type="button" class="matrix-filter-control" style="cursor:pointer; background:#e2e8f0;" onclick="limpiarFiltrosMatriz()">Limpiar</button>
         </div>
         <div class="table-scroll">
           <table class="proa-table">
@@ -299,6 +337,9 @@
           <button class="seg-btn active" id="tab-btn-pacientes" onclick="cambiarModoBusqueda('PACIENTES')">Pacientes</button>
           <button class="seg-btn" id="tab-btn-servicios" onclick="cambiarModoBusqueda('SERVICIOS')">Servicios</button>
         </div>
+
+        <!-- BOTONERA SELECCIONABLE DE SERVICIOS (Visible al elegir pestaña Servicios) -->
+        <div id="contenedor-chips-servicios" class="servicios-chips-grid" style="display: none;"></div>
 
         <div class="search-input-wrapper">
           <span class="material-icons-round search-icon-left">person_search</span>

@@ -13,16 +13,30 @@ let MODO_SIDEBAR = "PACIENTES";
 let PACIENTES_EXPANDIDOS = new Set();
 let PACIENTE_AUDITORIA_ACTUAL = null; // Guarda el hashPaciente y sus filas en el modal QF
 
+let SERVICIO_SELECCIONADO_SIDEBAR = "TODOS";
+
 document.addEventListener("DOMContentLoaded", () => {
   const hoyISO = new Date().toISOString().split("T")[0];
   document.getElementById("in-fecha").value = hoyISO;
   agregarFilaMedicamento();
+
+  // Cargar cuenta recordada si existe en este equipo
+  try {
+    const saved = localStorage.getItem("proa_v4_saved_auth");
+    if (saved) {
+      const parsed = JSON.parse(atob(saved));
+      if (parsed.email) document.getElementById("login-email").value = parsed.email;
+      if (parsed.pass) document.getElementById("login-pass").value = parsed.pass;
+      document.getElementById("login-remember").checked = true;
+    }
+  } catch (e) {}
 });
 
-// 1. AUTENTICACIÓN Y DESBLOQUEO
+// 1. AUTENTICACIÓN Y DESBLOQUEO CON OPCIÓN "RECORDAR CUENTA"
 window.iniciarSesionApp = async function() {
   const email = document.getElementById("login-email").value.trim();
   const pass = document.getElementById("login-pass").value;
+  const recordar = document.getElementById("login-remember")?.checked;
   const errorEl = document.getElementById("login-error");
   const btn = document.getElementById("btn-login");
 
@@ -31,6 +45,12 @@ window.iniciarSesionApp = async function() {
 
   const res = await loginUsuario(email, pass);
   if (res.exito) {
+    if (recordar) {
+      localStorage.setItem("proa_v4_saved_auth", btoa(JSON.stringify({ email, pass })));
+    } else {
+      localStorage.removeItem("proa_v4_saved_auth");
+    }
+
     document.getElementById("vista-login").style.display = "none";
     document.getElementById("header-user-name").innerText = res.user.email;
     await inicializarCatalogosSistema();
@@ -64,6 +84,11 @@ async function poblarDatalists() {
   const cat = await obtenerCatalogosSistema();
   if (cat) {
     CATALOGOS_MEMORIA = { ...CATALOGOS_MEMORIA, ...cat };
+  }
+  const selectSrvMatriz = document.getElementById("filtro-matriz-servicio");
+  if (selectSrvMatriz && CATALOGOS_MEMORIA.servicios) {
+    selectSrvMatriz.innerHTML = `<option value="TODOS">Servicio: Todos</option>` +
+      CATALOGOS_MEMORIA.servicios.map(s => `<option value="${s}">${s}</option>`).join("");
   }
   inicializarMotorAutocompletadoTeclado();
 }
@@ -527,14 +552,71 @@ window.cargarMatrizEnVivo = async function() {
   renderizarBarraLateral();
 };
 
-function renderizarTablaMatriz() {
+window.limpiarFiltrosMatriz = function() {
+  document.getElementById("filtro-matriz-ventana").value = "TODOS";
+  document.getElementById("filtro-matriz-estado").value = "TODOS";
+  document.getElementById("filtro-matriz-servicio").value = "TODOS";
+  document.getElementById("filtro-matriz-texto").value = "";
+  renderizarTablaMatriz();
+};
+
+window.renderizarTablaMatriz = function() {
   const tbody = document.getElementById("proa-tbody");
   if (!MEMORIA_FILAS.length) {
     tbody.innerHTML = `<tr><td colspan="25" style="text-align:center; padding:20px;">Sin registros en la base de datos.</td></tr>`;
+    document.getElementById("contador-matriz").innerText = "0 registros";
     return;
   }
 
-  tbody.innerHTML = MEMORIA_FILAS.map(f => {
+  const ventana = document.getElementById("filtro-matriz-ventana")?.value || "ACTIVOS_7D";
+  const filtroEst = document.getElementById("filtro-matriz-estado")?.value || "TODOS";
+  const filtroSrv = document.getElementById("filtro-matriz-servicio")?.value || "TODOS";
+  const orden = document.getElementById("filtro-matriz-orden")?.value || "ASC";
+  const texto = (document.getElementById("filtro-matriz-texto")?.value || "").trim().toUpperCase();
+
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+
+  // 1. Filtrar localmente en memoria (sin afectar a otros usuarios)
+  let filasFiltradas = MEMORIA_FILAS.filter(f => {
+    const m = calcularMetricasFila(f);
+    const diasAntiguedad = Math.floor((hoy - m.fIni) / 86400000);
+
+    if (ventana === "SOLO_VIGENTES" && !m.esVigente) return false;
+    if (ventana === "ACTIVOS_7D" && !m.esVigente && diasAntiguedad > 7) return false;
+    if (ventana === "ULTIMOS_30D" && !m.esVigente && diasAntiguedad > 30) return false;
+
+    if (filtroEst !== "TODOS" && f.estado.toUpperCase() !== filtroEst) return false;
+    if (filtroSrv !== "TODOS" && f.servicio.toUpperCase() !== filtroSrv) return false;
+
+    if (texto) {
+      const bloqueBusqueda = `${f.rut} ${f.nombre} ${f.apellido} ${f.servicio} ${f.cama} ${f.antimicrobiano} ${f.diagnostico} ${f.visador} ${f.digitador}`.toUpperCase();
+      if (!bloqueBusqueda.includes(texto)) return false;
+    }
+    return true;
+  });
+
+  // 2. Ordenar cronológicamente por Fecha de Inicio y luego por instante de creación (creado_ms)
+  filasFiltradas.sort((a, b) => {
+    const timeA = parsearFechaCL(a.fecha_inicio).getTime();
+    const timeB = parsearFechaCL(b.fecha_inicio).getTime();
+    if (timeA !== timeB) {
+      return orden === "ASC" ? timeA - timeB : timeB - timeA;
+    }
+    const msA = a.creado_ms || 0;
+    const msB = b.creado_ms || 0;
+    return orden === "ASC" ? msA - msB : msB - msA;
+  });
+
+  document.getElementById("contador-matriz").innerText =
+    `${filasFiltradas.length} de ${MEMORIA_FILAS.length} registros`;
+
+  if (!filasFiltradas.length) {
+    tbody.innerHTML = `<tr><td colspan="25" style="text-align:center; padding:20px; color:#64748b;">No hay registros que coincidan con el filtro seleccionado.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filasFiltradas.map(f => {
     const m = calcularMetricasFila(f);
     const semG = m.tGracia >= 0 ? "sem-verde" : "sem-rojo";
     const semA = m.tAut >= 0 ? "sem-verde" : "sem-rojo";
@@ -571,7 +653,7 @@ function renderizarTablaMatriz() {
       </tr>
     `;
   }).join("");
-}
+};
 
 window.renderizarBarraLateral = function() {
   const queryTxt = (document.getElementById("input-buscador-lateral").value || "").trim().toUpperCase();
@@ -593,10 +675,53 @@ window.renderizarBarraLateral = function() {
     pacientesMap[key].filas.push(f);
   });
 
-  let listaPacientes = Object.values(pacientesMap).filter(p => {
+  const todosLosPacientes = Object.values(pacientesMap);
+
+  // Si estamos en la pestaña SERVICIOS, dibujamos los botones de cada Servicio con su cantidad de pacientes
+  const contChips = document.getElementById("contenedor-chips-servicios");
+  if (contChips) {
+    if (MODO_SIDEBAR === "SERVICIOS") {
+      contChips.style.display = "flex";
+      const conteoPorSrv = {};
+      todosLosPacientes.forEach(p => {
+        const s = (p.servicio || "SIN SERVICIO").toUpperCase();
+        conteoPorSrv[s] = (conteoPorSrv[s] || 0) + 1;
+      });
+
+      const listaServicios = CATALOGOS_MEMORIA.servicios && CATALOGOS_MEMORIA.servicios.length
+        ? CATALOGOS_MEMORIA.servicios
+        : Object.keys(conteoPorSrv).sort();
+
+      let htmlChips = `
+        <button type="button" class="srv-chip ${SERVICIO_SELECCIONADO_SIDEBAR === "TODOS" ? "active" : ""}" onclick="seleccionarServicioSidebar('TODOS')">
+          <span>TODOS</span>
+          <span class="srv-chip-count">${todosLosPacientes.length}</span>
+        </button>
+      `;
+
+      listaServicios.forEach(srv => {
+        const cant = conteoPorSrv[srv] || 0;
+        if (cant > 0 || SERVICIO_SELECCIONADO_SIDEBAR === srv) {
+          htmlChips += `
+            <button type="button" class="srv-chip ${SERVICIO_SELECCIONADO_SIDEBAR === srv ? "active" : ""}" onclick="seleccionarServicioSidebar('${srv}')">
+              <span>${srv}</span>
+              <span class="srv-chip-count">${cant}</span>
+            </button>
+          `;
+        }
+      });
+      contChips.innerHTML = htmlChips;
+    } else {
+      contChips.style.display = "none";
+    }
+  }
+
+  let listaPacientes = todosLosPacientes.filter(p => {
+    if (MODO_SIDEBAR === "SERVICIOS" && SERVICIO_SELECCIONADO_SIDEBAR !== "TODOS") {
+      if (p.servicio.toUpperCase() !== SERVICIO_SELECCIONADO_SIDEBAR) return false;
+    }
     if (!queryTxt) return true;
-    if (MODO_SIDEBAR === "SERVICIOS") return p.servicio.includes(queryTxt);
-    return p.rut.includes(queryTxt) || p.nombreCompleto.includes(queryTxt);
+    return p.rut.includes(queryTxt) || p.nombreCompleto.includes(queryTxt) || p.servicio.includes(queryTxt);
   });
 
   document.getElementById("texto-coincidencias").innerText = `${listaPacientes.length} coincidencias`;
@@ -695,8 +820,14 @@ window.toggleDetalleTarjeta = function(key) {
   renderizarBarraLateral();
 };
 
+window.seleccionarServicioSidebar = function(srv) {
+  SERVICIO_SELECCIONADO_SIDEBAR = srv;
+  renderizarBarraLateral();
+};
+
 window.cambiarModoBusqueda = function(modo) {
   MODO_SIDEBAR = modo;
+  if (modo === "PACIENTES") SERVICIO_SELECCIONADO_SIDEBAR = "TODOS";
   document.getElementById("tab-btn-pacientes").classList.toggle("active", modo === "PACIENTES");
   document.getElementById("tab-btn-servicios").classList.toggle("active", modo === "SERVICIOS");
   renderizarBarraLateral();
