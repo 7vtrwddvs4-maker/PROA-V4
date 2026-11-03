@@ -1,0 +1,20 @@
+{
+  "name": "PROA v4.0 - Hospital El Pino",
+  "short_name": "PROA 4.0",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f1f5f9",
+  "theme_color": "#1e3a8a",
+  "icons": [
+    {
+      "src": "./logo-proa.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg.jfif"
+    },
+    {
+      "src": "./logo-proa.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg.jfif"
+    }
+  ]
+}
