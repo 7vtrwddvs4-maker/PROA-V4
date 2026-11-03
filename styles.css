@@ -10,7 +10,6 @@
   --text-muted: #64748b;
   --border: #e2e8f0;
 
-  /* Colores oficiales de las 3 Zonas de la Matriz PROA */
   --zona-azul-header: #a4c2f4;
   --zona-azul-bg: #e8f0fe;
   --zona-verde-header: #b6d7a8;
@@ -34,7 +33,6 @@ body {
   display: flex;
 }
 
-/* ================= LAYOUT GENERAL: ÁREA PRINCIPAL + BARRA LATERAL DERECHA ================= */
 .app-layout {
   display: grid;
   grid-template-columns: 1fr 355px;
@@ -53,7 +51,6 @@ body {
   padding-right: 4px;
 }
 
-/* ================= CABECERA SUPERIOR INSTITUCIONAL ================= */
 .top-header {
   background: var(--card-bg);
   border-radius: 12px;
@@ -68,7 +65,9 @@ body {
 
 .brand-group { display: flex; align-items: center; gap: 12px; }
 .hep-logo {
-  width: 44px; height: 44px; border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
   box-shadow: 0 2px 6px rgba(0,0,0,0.15);
   flex-shrink: 0;
   object-fit: cover;
@@ -80,7 +79,6 @@ body {
 .user-name { font-size: 12px; font-weight: 700; display: block; }
 .logout-link { font-size: 10px; color: var(--danger); font-weight: 600; cursor: pointer; }
 
-/* ================= DASHBOARD DE INGRESO (IDÉNTICO A PROA 3.3 INGRESO) ================= */
 .ingreso-window {
   background: var(--card-bg);
   border-radius: 18px;
@@ -215,16 +213,19 @@ body {
   letter-spacing: 0.3px;
 }
 
-.proa-input, .proa-select {
-  padding: 9px 12px;
-  border: 1px solid #e2e8f0;
+.proa-input, .proa-select, .estado-select-pill, .qf-estado-select {
+  height: 38px;
+  width: 100%;
+  min-width: 0;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
   border-radius: 10px;
   font-size: 12.5px;
   font-weight: 600;
   color: #1e293b;
-  background: #ffffff;
+  background-color: #ffffff;
   outline: none;
-  transition: 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .proa-input:focus, .proa-select:focus {
@@ -232,11 +233,8 @@ body {
   box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
 }
 
-.proa-input-readonly {
-  background: #f1f5f9;
-}
+.proa-input-readonly { background: #f1f5f9; }
 
-/* Autocompletado flotante de RUT o Nombre */
 .sugerencias-dropdown {
   position: absolute;
   top: 100%;
@@ -262,11 +260,8 @@ body {
   background: #0066cc;
   color: #ffffff;
 }
-.sug-item.sug-active span {
-  color: #e0f2fe !important;
-}
+.sug-item.sug-active span { color: #e0f2fe !important; }
 
-/* Filas dinámicas de medicamentos (Prescripción Antimicrobiana) */
 .med-row {
   display: grid;
   grid-template-columns: 120px 2fr 90px 1.1fr 1.1fr 38px;
@@ -276,15 +271,12 @@ body {
 }
 
 .estado-select-pill {
-  padding: 9px 10px;
-  border-radius: 10px;
   font-size: 11px;
   font-weight: 800;
   border: 1px solid #fed7aa;
   background: #fff7ed;
   color: #ea580c;
   text-align: center;
-  outline: none;
   cursor: pointer;
 }
 
@@ -322,11 +314,6 @@ body {
   box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.25);
   outline: none;
 }
-.btn-registrar-proa:focus {
-  background: #16a34a;
-  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.4);
-  outline: none;
-}
 
 .btn-registrar-proa {
   width: 100%;
@@ -346,8 +333,12 @@ body {
   box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25);
 }
 .btn-registrar-proa:hover { background: #16a34a; }
+.btn-registrar-proa:focus {
+  background: #16a34a;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.4);
+  outline: none;
+}
 
-/* ================= MATRIZ INFERIOR DE 3 ZONAS ================= */
 .matrix-container {
   background: var(--card-bg);
   border-radius: 14px;
@@ -370,7 +361,7 @@ body {
   font-weight: 700;
 }
 
-.table-scroll { overflow: auto; flex-grow: 1; }
+.table-scroll { overflow: auto; flex-grow: 1; padding-bottom: 42px; }
 table.proa-table { width: 100%; border-collapse: collapse; font-size: 11px; white-space: nowrap; }
 table.proa-table th {
   position: sticky; top: 0; z-index: 10;
@@ -390,7 +381,6 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
 .sem-verde { background: #b7e1cd !important; color: #0f5132; }
 .sem-rojo { background: #ea9999 !important; color: #58151c; }
 
-/* ================= BARRA LATERAL DERECHA (CENTRO DE BÚSQUEDA PROA 3.3) ================= */
 .search-sidebar {
   background: #f8fafc;
   border-radius: 16px;
@@ -420,7 +410,6 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
   color: #0f172a;
 }
 
-/* Segmented Control estilo iOS: Pacientes | Servicios */
 .segmented-control {
   background: #f1f5f9;
   padding: 3px;
@@ -499,7 +488,6 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
   margin-top: 8px;
 }
 
-/* Lista de Tarjetas de Pacientes en la Barra Lateral */
 .sidebar-cards-scroll {
   padding: 12px;
   overflow-y: auto;
@@ -507,14 +495,71 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
   display: flex;
   flex-direction: column;
   gap: 12px;
+  scroll-behavior: smooth;
+}
+
+@keyframes slideUpSmooth {
+  from { opacity: 0; transform: translateY(12px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .p-card {
-  background: #ffffff;
-  border-radius: 14px;
-  border: 1px solid #e2e8f0;
-  padding: 14px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+  background: var(--card-bg);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  padding: 15px 16px;
+  box-shadow: 0 6px 18px -4px rgba(15, 23, 42, 0.06);
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 0.2s ease;
+  animation: slideUpSmooth 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.p-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -6px rgba(0, 102, 204, 0.14);
+  border-color: #93c5fd;
+}
+
+.p-card-header-elegant {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.p-card-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #e0f2fe, #dbeafe);
+  color: #0369a1;
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.p-card-pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.meta-pill-badge {
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .p-card-name {
@@ -524,22 +569,6 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
   text-transform: uppercase;
   margin-bottom: 8px;
   line-height: 1.25;
-}
-
-.p-card-meta {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #64748b;
-  margin-bottom: 12px;
-}
-
-.meta-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
 }
 
 .highlight-match {
@@ -573,7 +602,6 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
 }
 .btn-card-action:hover { background: #e0f2fe; }
 
-/* Detalle expandible de Tratamientos dentro de la Tarjeta */
 .p-card-details {
   margin-top: 12px;
   padding-top: 12px;
@@ -613,7 +641,6 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
   margin: 2px 0 8px 22px;
 }
 
-/* Píldoras semánticas que convierten números en texto (Verde / Roja) */
 .semantic-pill {
   display: block;
   width: 100%;
@@ -664,7 +691,6 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
   margin-bottom: 4px;
 }
 
-/* Modal Login y Modal Visación QF */
 #vista-login, #modal-visacion-qf {
   position: fixed; inset: 0;
   background: rgba(15, 23, 42, 0.7);
@@ -679,7 +705,6 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
   box-shadow: 0 20px 30px rgba(0,0,0,0.2);
 }
 
-/* ================= MODAL DE AUDITORÍA CLÍNICA PROA (AMPLIADO Y CUADRADO) ================= */
 .auditoria-modal-window {
   background: #f8fafc;
   width: 1160px;
@@ -731,23 +756,6 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
   width: 100%;
 }
 
-/* Uniformidad absoluta de altura y bordes en todos los inputs y selects */
-.proa-input, .proa-select, .estado-select-pill, .qf-estado-select {
-  height: 38px;
-  width: 100%;
-  min-width: 0;
-  padding: 0 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #1e293b;
-  background-color: #ffffff;
-  outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-
-/* Barra Acordeón de Historial Clínico */
 .historial-accordion-bar {
   background: #eff6ff;
   border: 1px solid #dbeafe;
@@ -773,7 +781,6 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
   display: none;
 }
 
-/* Tarjeta individual de tratamiento activo en Auditoría (100% cuadrada) */
 .qf-trat-card {
   background: #ffffff;
   border: 1px solid #cbd5e1;
@@ -869,7 +876,6 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
 }
 .btn-guardar-visacion-azul:hover { background: #0052a3; }
 
-/* ================= MOTOR DE AUTOCOMPLETADO POR TECLADO (FLECHAS + ENTER/TAB) ================= */
 .ac-popup-menu {
   position: fixed;
   background: #ffffff;
@@ -893,21 +899,13 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
   justify-content: space-between;
   align-items: center;
 }
-
 .ac-popup-item:last-child { border-bottom: none; }
-
 .ac-popup-item.ac-active, .ac-popup-item:hover {
   background: #0066cc;
   color: #ffffff;
 }
+.ac-kbd-hint { font-size: 9.5px; opacity: 0.75; font-weight: 500; }
 
-.ac-kbd-hint {
-  font-size: 9.5px;
-  opacity: 0.75;
-  font-weight: 500;
-}
-
-/* ================= MEJORAS: RECORDAR CUENTA, FILTROS MATRIZ Y PÍLDORAS SERVICIO ================= */
 .remember-row {
   display: flex;
   align-items: center;
@@ -919,7 +917,6 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
   cursor: pointer;
   user-select: none;
 }
-
 .remember-row input[type="checkbox"] {
   width: 16px;
   height: 16px;
@@ -948,10 +945,7 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
   background: #ffffff;
   outline: none;
 }
-
-.matrix-filter-control:focus {
-  border-color: #007aff;
-}
+.matrix-filter-control:focus { border-color: #007aff; }
 
 .local-safe-badge {
   margin-left: auto;
@@ -966,7 +960,6 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
   gap: 4px;
 }
 
-/* Botonera de Servicios en Barra Lateral Derecha */
 .servicios-chips-grid {
   display: flex;
   flex-wrap: wrap;
@@ -991,31 +984,19 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
   gap: 5px;
   transition: 0.15s;
 }
-
-.srv-chip:hover {
-  background: #eff6ff;
-  border-color: #93c5fd;
-}
-
-.srv-chip.active {
-  background: #007aff;
-  color: #ffffff;
-  border-color: #007aff;
-}
-
+.srv-chip:hover { background: #eff6ff; border-color: #93c5fd; }
+.srv-chip.active { background: #007aff; color: #ffffff; border-color: #007aff; }
 .srv-chip-count {
   background: rgba(0, 0, 0, 0.08);
   padding: 1px 5px;
   border-radius: 6px;
   font-size: 9.5px;
 }
-
 .srv-chip.active .srv-chip-count {
   background: rgba(255, 255, 255, 0.25);
   color: #ffffff;
 }
 
-/* ================= CARRUSEL EN VIVO DEL BUSCADOR (ESTILO PROA 3.3) ================= */
 .live-dashboard-wrap {
   padding: 6px 4px;
   display: flex;
@@ -1047,12 +1028,7 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
   letter-spacing: 0.3px;
 }
 
-.live-dots-row {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
+.live-dots-row { display: flex; align-items: center; gap: 5px; }
 .live-dot {
   width: 6px;
   height: 6px;
@@ -1061,19 +1037,9 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
   cursor: pointer;
   transition: all 0.25s ease;
 }
+.live-dot.active { width: 18px; border-radius: 10px; background: #0066ff; }
 
-.live-dot.active {
-  width: 18px;
-  border-radius: 10px;
-  background: #0066ff;
-}
-
-.live-kpi-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
+.live-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .live-kpi-card {
   background: #ffffff;
   border-radius: 18px;
@@ -1101,18 +1067,8 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
 .kpi-icon-orange { background: #fffbeb; color: #f59e0b; border: 1px solid #fde68a; }
 .kpi-icon-green { background: #f0fdf4; color: #22c55e; border: 1px solid #bbf7d0; margin-bottom: 0; }
 
-.kpi-big-num {
-  font-size: 26px;
-  font-weight: 800;
-  line-height: 1;
-  margin-bottom: 4px;
-}
-
-.kpi-label {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #64748b;
-}
+.kpi-big-num { font-size: 26px; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+.kpi-label { font-size: 11.5px; font-weight: 700; color: #64748b; }
 
 .live-activos-banner {
   background: #ffffff;
@@ -1178,11 +1134,7 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
   text-align: center;
 }
 
-/* ================= CAMPANA Y PANEL DE NOTIFICACIONES ================= */
-.notif-wrapper {
-  position: relative;
-}
-
+.notif-wrapper { position: relative; }
 .btn-notif-bell {
   background: #f8fafc;
   border: 1px solid #cbd5e1;
@@ -1240,12 +1192,7 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
   align-items: center;
 }
 
-.notif-list-scroll {
-  overflow-y: auto;
-  max-height: 370px;
-  divide-y: 1px solid #f1f5f9;
-}
-
+.notif-list-scroll { overflow-y: auto; max-height: 370px; }
 .notif-item {
   padding: 11px 15px;
   border-bottom: 1px solid #f1f5f9;
@@ -1254,16 +1201,8 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
   color: #334155;
 }
 .notif-item:hover { background: #f8fafc; }
+.notif-time { font-size: 10px; color: #94a3b8; font-weight: 600; margin-top: 4px; display: block; }
 
-.notif-time {
-  font-size: 10px;
-  color: #94a3b8;
-  font-weight: 600;
-  margin-top: 4px;
-  display: block;
-}
-
-/* ================= COLORES OFICIALES DE ESTADO (IGUAL A GOOGLE SHEETS) ================= */
 .td-estado-cell {
   padding: 0 4px !important;
   min-width: 118px !important;
@@ -1293,27 +1232,29 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
   padding: 2px 4px;
 }
 
-/* Inputs editables en todas las celdas Verdes y Amarillas de la Matriz Bruta */
+table.proa-table td.td-verde,
+table.proa-table td.td-amarilla {
+  padding: 4px 6px !important;
+}
+
 .matrix-editable-input {
   width: 100%;
   min-width: 115px;
-  height: 26px;
-  border: 1px solid transparent;
-  border-radius: 5px;
-  background: transparent;
+  height: 28px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.65);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   color: #0f172a;
-  padding: 2px 6px;
+  padding: 2px 8px;
   outline: none;
-  transition: 0.15s;
+  transition: all 0.18s ease;
 }
-
 .matrix-editable-input:hover {
-  border-color: rgba(0, 0, 0, 0.18);
-  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(0, 0, 0, 0.25);
+  background: rgba(255, 255, 255, 0.85);
 }
-
 .matrix-editable-input:focus {
   border-color: #0066cc;
   background: #ffffff;
@@ -1332,13 +1273,11 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
   background: #ffffff;
   outline: none;
 }
-
 .matrix-inline-days:focus {
   border-color: #0066cc;
   box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.18);
 }
 
-/* ================= MODALES DE FEEDBACK: ¡INGRESO EXITOSO! Y ERROR ================= */
 #modal-feedback-proa {
   position: fixed;
   inset: 0;
@@ -1377,33 +1316,11 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
   justify-content: center;
   border: 3.5px solid;
 }
+.icon-circle-success { border-color: #a3e635; color: #84cc16; background: rgba(163, 230, 53, 0.08); }
+.icon-circle-error { border-color: #f87171; color: #ef4444; background: rgba(248, 113, 113, 0.08); }
 
-.icon-circle-success {
-  border-color: #a3e635;
-  color: #84cc16;
-  background: rgba(163, 230, 53, 0.08);
-}
-
-.icon-circle-error {
-  border-color: #f87171;
-  color: #ef4444;
-  background: rgba(248, 113, 113, 0.08);
-}
-
-.feedback-title {
-  font-size: 24px;
-  font-weight: 800;
-  color: #1e293b;
-  margin-bottom: 10px;
-}
-
-.feedback-subtitle {
-  font-size: 14px;
-  font-weight: 500;
-  color: #64748b;
-  line-height: 1.45;
-  margin-bottom: 6px;
-}
+.feedback-title { font-size: 24px; font-weight: 800; color: #1e293b; margin-bottom: 10px; }
+.feedback-subtitle { font-size: 14px; font-weight: 500; color: #64748b; line-height: 1.45; margin-bottom: 6px; }
 
 .btn-feedback-ok {
   margin-top: 18px;
@@ -1419,106 +1336,6 @@ table.proa-table td { padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 
 }
 .btn-feedback-ok:hover { background: #0056b3; }
 
-/* ================= CASILLAS AMPLIAS EN MATRIZ (SIN TEXTOS CORTADOS) ================= */
-table.proa-table td.td-verde,
-table.proa-table td.td-amarilla {
-  padding: 4px 6px !important;
-}
-
-.matrix-editable-input {
-  height: 28px;
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.65);
-  font-size: 11px;
-  font-weight: 700;
-  color: #0f172a;
-  padding: 2px 8px;
-  outline: none;
-  transition: all 0.18s ease;
-}
-
-/* Padding inferior extra en el scroll de la tabla para que la última fila tenga aire */
-.table-scroll {
-  padding-bottom: 42px;
-}
-
-/* ================= TRANSICIONES Y TARJETAS ELEGANTES EN BUSCADOR LATERAL ================= */
-.sidebar-cards-scroll {
-  scroll-behavior: smooth;
-}
-
-@keyframes slideUpSmooth {
-  from {
-    opacity: 0;
-    transform: translateY(12px) scale(0.985);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.p-card {
-  background: var(--card-bg);
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  padding: 15px 16px;
-  box-shadow: 0 6px 18px -4px rgba(15, 23, 42, 0.06);
-  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
-              box-shadow 0.22s cubic-bezier(0.22, 1, 0.36, 1),
-              border-color 0.2s ease;
-  animation: slideUpSmooth 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.p-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 24px -6px rgba(0, 102, 204, 0.14);
-  border-color: #93c5fd;
-}
-
-.p-card-header-elegant {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.p-card-avatar {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #e0f2fe, #dbeafe);
-  color: #0369a1;
-  font-size: 12px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.p-card- pills-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-
-.meta-pill-badge {
-  background: #f1f5f9;
-  color: #334155;
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 4px 9px;
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* ================= SELECTOR Y TEMA MODO DÍA / NOCHE / AUTOMÁTICO ================= */
 .theme-switcher-pill {
   display: inline-flex;
   background: #f1f5f9;
@@ -1542,21 +1359,18 @@ table.proa-table td.td-amarilla {
   gap: 3px;
   transition: all 0.2s ease;
 }
-
 .theme-btn.active {
   background: #ffffff;
   color: #0f172a;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-/* Variables y Ajustes para MODO NOCHE (Dark Mode) */
 body.dark-mode {
   --bg-app: #0b1120;
   --card-bg: #1e293b;
   --text-main: #f1f5f9;
   --text-muted: #94a3b8;
   --border: #334155;
-
   --zona-azul-header: #1e3a8a;
   --zona-azul-bg: #172554;
   --zona-verde-header: #14532d;
@@ -1625,34 +1439,18 @@ body.dark-mode .ranking-atb-name {
   color: #f8fafc !important;
 }
 
-body.dark-mode table.proa-table th {
-  color: #f8fafc !important;
-  border-color: #475569 !important;
-}
-
-body.dark-mode table.proa-table td {
-  color: #e2e8f0 !important;
-  border-color: #334155 !important;
-}
-
+body.dark-mode table.proa-table th { color: #f8fafc !important; border-color: #475569 !important; }
+body.dark-mode table.proa-table td { color: #e2e8f0 !important; border-color: #334155 !important; }
 body.dark-mode .matrix-editable-input,
 body.dark-mode .matrix-inline-days {
   background: rgba(15, 23, 42, 0.7) !important;
   color: #f8fafc !important;
   border-color: #475569 !important;
 }
-
 body.dark-mode .meta-pill-badge,
 body.dark-mode .btn-card-action {
   background: #0f172a !important;
   color: #93c5fd !important;
 }
-
-body.dark-mode .ac-popup-menu {
-  background: #1e293b !important;
-  border-color: #475569 !important;
-}
-body.dark-mode .ac-popup-item {
-  color: #f1f5f9 !important;
-  border-color: #334155 !important;
-}
+body.dark-mode .ac-popup-menu { background: #1e293b !important; border-color: #475569 !important; }
+body.dark-mode .ac-popup-item { color: #f1f5f9 !important; border-color: #334155 !important; }
