@@ -20,28 +20,53 @@
 </head>
 <body>
 
-  <!-- PANTALLA DE LOGIN CRIPTOGRÁFICO -->
+  <!-- PANTALLA DE LOGIN Y REGISTRO DE ROL CLÍNICO (QF / TENS) -->
   <div id="vista-login">
-    <div class="login-card">
+    <div class="login-card" style="width: 410px;">
       <div class="hep-logo" style="margin: 0 auto 12px; width: 50px; height: 50px; font-size: 9px;">HOSPITAL<br>EL PINO</div>
       <h2 style="font-size: 20px; color: #1e3a8a; margin-bottom: 4px;">PROA v4.0</h2>
-      <p style="font-size: 12px; color: #64748b; margin-bottom: 18px;">Bóveda Clínica Cifrada (AES-256)</p>
+      <p style="font-size: 12px; color: #64748b; margin-bottom: 16px;">Bóveda Clínica Cifrada (AES-256)</p>
       
-      <div style="text-align: left; margin-bottom: 12px;">
+      <div style="text-align: left; margin-bottom: 10px;">
         <label style="font-size: 10px; font-weight: 800; color: #64748b;">CORREO AUTORIZADO</label>
         <input type="email" id="login-email" class="proa-input" style="width: 100%; margin-top: 4px;" placeholder="usuario@gmail.com">
       </div>
-      <div style="text-align: left; margin-bottom: 12px;">
+      <div style="text-align: left; margin-bottom: 10px;">
         <label style="font-size: 10px; font-weight: 800; color: #64748b;">CONTRASEÑA DE TURNO</label>
         <input type="password" id="login-pass" class="proa-input" style="width: 100%; margin-top: 4px;" placeholder="••••••••" onkeydown="if(event.key==='Enter') iniciarSesionApp()">
       </div>
+
+      <!-- Campos de Rol Clínico (Visibles al crear cuenta o configurar perfil) -->
+      <div id="bloque-registro-rol" style="display: none; background: #f8fafc; padding: 12px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 12px; text-align: left;">
+        <div style="margin-bottom: 10px;">
+          <label style="font-size: 10px; font-weight: 800; color: #0284c7;">NOMBRE Y APELLIDO (PARA AUDITORÍA Y NOTIFICACIONES)</label>
+          <input type="text" id="login-nombre-profesional" class="proa-input" style="margin-top: 4px;" placeholder="Ej: JOSE VALDERRAMA o FRANCISCO BARRA">
+        </div>
+        <div>
+          <label style="font-size: 10px; font-weight: 800; color: #0284c7;">RANGO / ROL EN PROA</label>
+          <select id="login-rol-profesional" class="proa-select" style="margin-top: 4px;">
+            <option value="QF">QUÍMICO FARMACÉUTICO (Visación y Edición Total)</option>
+            <option value="TENS">TENS FARMACIA (Ingreso de Solicitudes)</option>
+          </select>
+        </div>
+      </div>
+
       <label class="remember-row">
         <input type="checkbox" id="login-remember" checked>
         <span>Recordar mi cuenta en este computador</span>
       </label>
+
       <button id="btn-login" class="btn-registrar-proa" onclick="iniciarSesionApp()">
-        <span class="material-icons-round" style="font-size: 18px;">lock_open</span> DESBLOQUEAR SISTEMA
+        <span class="material-icons-round" style="font-size: 18px;">lock_open</span>
+        <span id="txt-btn-login">DESBLOQUEAR SISTEMA</span>
       </button>
+
+      <div style="margin-top: 12px;">
+        <a onclick="toggleModoCrearCuentaLogin()" id="link-toggle-registro" style="font-size: 11.5px; color: #0066cc; font-weight: 700; cursor: pointer;">
+          ¿Crear cuenta nueva o cambiar rol QF / TENS? Haz clic aquí
+        </a>
+      </div>
+
       <div id="login-error" style="color: #ef4444; font-size: 12px; margin-top: 10px; display: none;"></div>
     </div>
   </div>
@@ -144,19 +169,49 @@
     <!-- COLUMNA IZQUIERDA: DASHBOARD DE INGRESO + MATRIZ -->
     <div class="main-workspace">
       
-      <!-- 1. BARRA INSTITUCIONAL -->
+      <!-- 1. BARRA INSTITUCIONAL CON NOTIFICACIONES Y ROL -->
       <header class="top-header">
         <div class="brand-group">
           <div class="hep-logo">Hospital<br>El Pino</div>
           <div class="app-title">PROA v4.0 • FARMACIA CLÍNICA</div>
         </div>
         <div class="header-right">
-          <button class="btn-add-med" style="margin:0; background:#eff6ff; border-color:#bfdbfe;" onclick="abrirModalVisacionVacio()">
+          <button id="btn-top-auditoria-qf" class="btn-add-med" style="margin:0; background:#eff6ff; border-color:#bfdbfe;" onclick="abrirModalVisacionVacio()">
             <span class="material-icons-round" style="font-size:16px;">fact_check</span>
             <span>Auditoría Visación (QFs)</span>
           </button>
+
+          <!-- Selector de Tema: Día / Noche / Automático -->
+          <div class="theme-switcher-pill" title="Modo de apariencia: Día, Noche o Automático según tu sistema">
+            <button type="button" id="theme-btn-light" class="theme-btn" onclick="cambiarTemaPROA('LIGHT')">☀️ Día</button>
+            <button type="button" id="theme-btn-dark" class="theme-btn" onclick="cambiarTemaPROA('DARK')">🌙 Noche</button>
+            <button type="button" id="theme-btn-auto" class="theme-btn active" onclick="cambiarTemaPROA('AUTO')">🌗 Auto</button>
+          </div>
+
+          <!-- Botón de Notificaciones en Vivo -->
+          <div class="notif-wrapper">
+
+          <!-- Botón de Notificaciones en Vivo -->
+          <div class="notif-wrapper">
+            <button type="button" class="btn-notif-bell" onclick="togglePanelNotificaciones()" title="Historial de Notificaciones PROA">
+              <span class="material-icons-round" style="font-size: 20px;">notifications</span>
+              <span id="notif-badge" class="notif-badge-count" style="display: none;">0</span>
+            </button>
+
+            <div id="panel-notificaciones" class="notif-dropdown-panel">
+              <div class="notif-panel-header">
+                <span>🔔 Registro de Actividad Clínica</span>
+                <button onclick="cargarNotificacionesEnVivo()" style="border:none; background:none; color:#0066cc; font-size:11px; font-weight:700; cursor:pointer;">Actualizar</button>
+              </div>
+              <div id="lista-notificaciones-dom" class="notif-list-scroll">
+                <div style="padding: 20px; text-align: center; color: #94a3b8; font-size: 12px;">Sin notificaciones recientes.</div>
+              </div>
+            </div>
+          </div>
+
           <div class="user-info">
-            <span class="user-name" id="header-user-name">Francisco Barra</span>
+            <span class="user-name" id="header-user-name">Usuario</span>
+            <span id="header-user-role-badge" style="font-size: 10px; font-weight: 800; color: #0066cc; display: block; cursor: pointer;" title="Haz clic para alternar vista QF / TENS en pruebas" onclick="cambiarRolRapidoPruebas()">ROL: VERIFICANDO...</span>
             <a class="logout-link" onclick="cerrarSesionApp()">Cerrar Sesión (Cambio de Turno)</a>
           </div>
         </div>
@@ -173,7 +228,7 @@
             <span>● Sistema Listo</span>
             <span style="font-weight: 500; color: #475569;">| Esperando ingresos...</span>
           </div>
-          <button class="btn-minimize" title="Minimizar / Expandir Panel de Ingreso" onclick="toggleMinimizarIngreso()">−</button>
+          <button id="btn-minimizar-ingreso" class="btn-minimize" title="Minimizar Panel de Ingreso" onclick="toggleMinimizarIngreso()">−</button>
         </div>
 
         <div class="ingreso-body" id="cuerpo-formulario-ingreso">
@@ -328,9 +383,10 @@
       <div class="sidebar-top">
         <div class="sidebar-brand-row">
           <h3>PROA 4.0</h3>
-          <button onclick="cargarMatrizEnVivo()" style="border:none; background:#f1f5f9; border-radius:8px; padding:5px; cursor:pointer;" title="Refrescar">
-            <span class="material-icons-round" style="font-size: 18px; color: #0284c7;">sync</span>
-          </button>
+          <span style="font-size: 10px; font-weight: 800; color: #16a34a; background: #dcfce7; padding: 4px 9px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px;">
+            <span style="width: 6px; height: 6px; border-radius: 50%; background: #16a34a; display: inline-block;"></span>
+            EN VIVO
+          </span>
         </div>
 
         <div class="segmented-control">
@@ -393,6 +449,18 @@
     <option value="AJUSTE DE DOSIS">
     <option value="AJUSTE DIAS DE TRATAMIENTO">
   </datalist>
+
+  <!-- MODAL DE CONFIRMACIÓN (¡INGRESO EXITOSO! / ERROR) -->
+  <div id="modal-feedback-proa">
+    <div class="feedback-card">
+      <div id="feedback-icon-box" class="feedback-icon-circle icon-circle-success">
+        <span id="feedback-icon-symbol" class="material-icons-round" style="font-size: 42px;">check</span>
+      </div>
+      <div id="feedback-title-txt" class="feedback-title">¡Ingreso Exitoso!</div>
+      <div id="feedback-desc-txt" class="feedback-subtitle">Se registraron 1 medicamentos.</div>
+      <button id="feedback-btn-ok" class="btn-feedback-ok" style="display: none;" onclick="cerrarModalFeedback()">OK</button>
+    </div>
+  </div>
 
   <script type="module" src="./app.js"></script>
 </body>

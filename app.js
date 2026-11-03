@@ -1,12 +1,24 @@
-import { loginUsuario, cerrarSesion } from "./auth.js";
+import { loginUsuario, crearCuentaUsuario, cerrarSesion } from "./auth.js";
 import {
   registrarIngresoMultipleCifrado,
   obtenerCatalogosSistema,
   inicializarCatalogosSistema,
   obtenerMatrizCompletaDescifrada,
   guardarAuditoriaCompletaQF,
-  eliminarTratamientoFirestore
+  eliminarTratamientoFirestore,
+  guardarPerfilUsuario,
+  obtenerPerfilUsuario,
+  actualizarRapidoDesdeMatriz,
+  registrarNotificacionPROA,
+  obtenerNotificacionesDescifradas,
+  suscribirCambiosEnTiempoReal
 } from "./proaService.js";
+
+let PERFIL_ACTUAL = { nombre: "FRANCISCO BARRA", rol: "QF", email: "" };
+let MODO_CREAR_CUENTA = false;
+let TIMER_CARRUSEL_SIDEBAR = null;
+let INDICE_CARRUSEL_SRV = 0;
+let VER_LISTA_PACIENTES_SIDEBAR = false;
 
 let MEMORIA_FILAS = [];
 let MODO_SIDEBAR = "PACIENTES";
@@ -32,18 +44,31 @@ document.addEventListener("DOMContentLoaded", () => {
   } catch (e) {}
 });
 
-// 1. AUTENTICACIÓN Y DESBLOQUEO CON OPCIÓN "RECORDAR CUENTA"
+window.toggleModoCrearCuentaLogin = function() {
+  MODO_CREAR_CUENTA = !MODO_CREAR_CUENTA;
+  document.getElementById("bloque-registro-rol").style.display = MODO_CREAR_CUENTA ? "block" : "none";
+  document.getElementById("txt-btn-login").innerText = MODO_CREAR_CUENTA ? "GUARDAR ROL / CREAR CUENTA" : "DESBLOQUEAR SISTEMA";
+};
+
+// 1. AUTENTICACIÓN Y CONFIGURACIÓN DE ROL (QF vs TENS)
 window.iniciarSesionApp = async function() {
   const email = document.getElementById("login-email").value.trim();
   const pass = document.getElementById("login-pass").value;
   const recordar = document.getElementById("login-remember")?.checked;
+  const nombreInput = document.getElementById("login-nombre-profesional")?.value.trim();
+  const rolInput = document.getElementById("login-rol-profesional")?.value || "QF";
   const errorEl = document.getElementById("login-error");
   const btn = document.getElementById("btn-login");
 
-  btn.innerText = "Abriendo Bóveda...";
+  errorEl.style.display = "none";
   btn.disabled = true;
 
-  const res = await loginUsuario(email, pass);
+  // Intentamos iniciar sesión; si está en modo crear cuenta y no existe, la crea en Firebase Auth
+  let res = await loginUsuario(email, pass);
+  if (!res.exito && MODO_CREAR_CUENTA) {
+    res = await crearCuentaUsuario(email, pass);
+  }
+
   if (res.exito) {
     if (recordar) {
       localStorage.setItem("proa_v4_saved_auth", btoa(JSON.stringify({ email, pass })));
@@ -51,17 +76,88 @@ window.iniciarSesionApp = async function() {
       localStorage.removeItem("proa_v4_saved_auth");
     }
 
+    // Si el usuario abrió el panel de configurar rol/nombre, lo guardamos en Firestore
+    if (MODO_CREAR_CUENTA && nombreInput) {
+      await guardarPerfilUsuario(res.user.uid, { nombre: nombreInput, rol: rolInput, email });
+    }
+
+    const MAPA_CORREOS_NOMBRES = {
+      "barra.francisco30@gmail.com": "FRANCISCO BARRA",
+      "marcelourtubiaevert@gmail.com": "Urtubia QF.",
+      "jl.valderrama.cortes@gmail.com": "Valderrama QF",
+      "belenquinterosaguilera30@gmail.com": "Quinteros QF",
+      "vivianaisabel.gl@gmail.com": "González QF.",
+      "joacocalderonn@gmail.com": "Calderón QF.",
+      "s.chavezg@outlook.com": "Chavez QF.",
+      "claudio.villagra3@gmail.com": "CLAUDIO VILLAGRA"
+    };
+
+    let perfilGuardado = await obtenerPerfilUsuario(res.user.uid);
+    const nombrePorCorreo = MAPA_CORREOS_NOMBRES[email.toLowerCase()];
+
+    if (!perfilGuardado) {
+      const nombreDefecto = nombreInput || nombrePorCorreo || email.split("@")[0].toUpperCase();
+      perfilGuardado = { nombre: nombreDefecto, rol: rolInput || "QF", email };
+      await guardarPerfilUsuario(res.user.uid, perfilGuardado);
+    } else if (perfilGuardado.nombre === "BARRA.FRANCISCO30" || (nombrePorCorreo && !nombreInput)) {
+      // Corrige automáticamente si antes se había guardado con el prefijo del correo
+      perfilGuardado.nombre = nombreInput || nombrePorCorreo || perfilGuardado.nombre;
+      await guardarPerfilUsuario(res.user.uid, perfilGuardado);
+    }
+
+    PERFIL_ACTUAL = perfilGuardado;
+    aplicarPermisosSegunRolUI();
+
     document.getElementById("vista-login").style.display = "none";
-    document.getElementById("header-user-name").innerText = res.user.email;
     await inicializarCatalogosSistema();
     await poblarDatalists();
     await cargarMatrizEnVivo();
+    await cargarNotificacionesEnVivo();
+    iniciarCarruselAutomaticoSidebar();
+    suscribirCambiosEnTiempoReal(async () => {
+      await cargarMatrizEnVivo();
+      await cargarNotificacionesEnVivo();
+    });
   } else {
     errorEl.innerText = "Error: " + res.mensaje;
     errorEl.style.display = "block";
-    btn.innerText = "DESBLOQUEAR SISTEMA";
     btn.disabled = false;
   }
+};
+
+function aplicarPermisosSegunRolUI() {
+  const esQF = PERFIL_ACTUAL.rol === "QF";
+  document.getElementById("header-user-name").innerText = PERFIL_ACTUAL.nombre || PERFIL_ACTUAL.email;
+  document.getElementById("header-user-role-badge").innerText =
+    esQF ? "🟣 ROL: QUÍMICO FARMACÉUTICO (Cambiar)" : "🔵 ROL: TENS FARMACIA (Cambiar)";
+
+  // Autocompletar el digitador con el nombre del usuario conectado
+  const inDig = document.getElementById("in-digitador");
+  if (inDig && PERFIL_ACTUAL.nombre) inDig.value = PERFIL_ACTUAL.nombre;
+
+  // Botón superior de Auditoría Visación: exclusivo para QF
+  const btnAudTop = document.getElementById("btn-top-auditoria-qf");
+  if (btnAudTop) btnAudTop.style.display = esQF ? "inline-flex" : "none";
+
+  // En el formulario de ingreso, si es TENS bloqueamos el Estado en SOLICITUD
+  document.querySelectorAll(".med-estado").forEach(sel => {
+    if (!esQF) {
+      sel.value = "SOLICITUD";
+      sel.disabled = true;
+      sel.title = "Los perfiles TENS solo pueden ingresar tratamientos en estado SOLICITUD";
+    } else {
+      sel.disabled = false;
+      sel.title = "";
+    }
+  });
+}
+
+// Permite alternar rápidamente entre vista QF y vista TENS haciendo clic en el badge del rol arriba a la derecha
+window.cambiarRolRapidoPruebas = function() {
+  PERFIL_ACTUAL.rol = PERFIL_ACTUAL.rol === "QF" ? "TENS" : "QF";
+  aplicarPermisosSegunRolUI();
+  renderizarTablaMatriz();
+  renderizarBarraLateral();
 };
 
 window.cerrarSesionApp = async function() {
@@ -108,9 +204,23 @@ function inicializarMotorAutocompletadoTeclado() {
 
   function posicionarPopup(input) {
     const rect = input.getBoundingClientRect();
-    popup.style.left = `${rect.left}px`;
-    popup.style.top = `${rect.bottom + 4}px`;
-    popup.style.width = `${Math.max(rect.width, 240)}px`;
+    const alturaEstimadaMenu = Math.min(itemsActuales.length * 35 + 10, 220);
+    const espacioAbajo = window.innerHeight - rect.bottom;
+
+    // Evita que se salga por la derecha de la pantalla
+    const anchoMenu = Math.max(rect.width, 250);
+    const leftSeguro = Math.min(rect.left, window.innerWidth - anchoMenu - 12);
+    popup.style.left = `${Math.max(8, leftSeguro)}px`;
+    popup.style.width = `${anchoMenu}px`;
+
+    // Si estamos en el último paciente y no cabe abajo, se despliega hacia arriba
+    if (espacioAbajo < alturaEstimadaMenu + 16 && rect.top > alturaEstimadaMenu) {
+      popup.style.top = "auto";
+      popup.style.bottom = `${window.innerHeight - rect.top + 4}px`;
+    } else {
+      popup.style.bottom = "auto";
+      popup.style.top = `${rect.bottom + 4}px`;
+    }
   }
 
   function renderizarOpciones(input) {
@@ -160,11 +270,18 @@ function inicializarMotorAutocompletadoTeclado() {
 
   function seleccionarYAvanzar(idx) {
     if (!inputActivo) return;
+    const el = inputActivo;
     if (itemsActuales[idx] !== undefined) {
-      inputActivo.value = itemsActuales[idx];
+      el.value = itemsActuales[idx];
+      // Si es una casilla editable de la matriz en bruto, guardamos de inmediato en Firestore
+      if (el.dataset.hash && el.dataset.idtrat && el.dataset.campo) {
+        window.guardarCeldaMatrizQF(el.dataset.hash, el.dataset.idtrat, el.dataset.campo, el.value);
+      } else {
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+      }
     }
     popup.style.display = "none";
-    avanzarAlSiguienteCampo(inputActivo);
+    avanzarAlSiguienteCampo(el);
   }
 
   function avanzarAlSiguienteCampo(elementoActual) {
@@ -231,7 +348,7 @@ function inicializarMotorAutocompletadoTeclado() {
         return;
       }
 
-      if (menuAbierto && target.value.trim() !== "") {
+      if (menuAbierto) {
         e.preventDefault();
         seleccionarYAvanzar(indiceSeleccionado);
       } else {
@@ -290,6 +407,7 @@ window.agregarFilaMedicamento = function(enfocarNuevo = false) {
   `;
   contenedor.appendChild(div);
 
+  aplicarPermisosSegunRolUI();
   if (enfocarNuevo) {
     const inputAtb = div.querySelector(".med-atb");
     if (inputAtb) inputAtb.focus();
@@ -303,7 +421,14 @@ window.eliminarFilaMedicamento = function(btn) {
 
 window.toggleMinimizarIngreso = function() {
   const body = document.getElementById("cuerpo-formulario-ingreso");
-  body.style.display = body.style.display === "none" ? "block" : "none";
+  const btn = document.getElementById("btn-minimizar-ingreso");
+  const estaMinimizado = body.classList.toggle("minimizado");
+
+  if (btn) {
+    btn.innerText = estaMinimizado ? "+" : "−";
+    btn.title = estaMinimizado ? "Expandir Panel de Ingreso" : "Minimizar Panel de Ingreso";
+    btn.style.transform = estaMinimizado ? "rotate(90deg)" : "rotate(0deg)";
+  }
 };
 
 // 3. AUTOCOMPLETADO EN INGRESO CON AUTO-GUIÓN Y SOPORTE DE FLECHAS + ENTER/TAB
@@ -428,7 +553,42 @@ window.seleccionarPacienteSugerido = function(rut, nombre, apellido, servicio, c
   document.getElementById("dropdown-sugerencias").style.display = "none";
 };
 
-// 4. REGISTRAR EN PROA
+// FUNCIONES DE MODAL VISUAL (¡INGRESO EXITOSO! Y ERROR)
+window.mostrarModalFeedback = function(tipo, titulo, mensaje, autoCerrarMs = 0) {
+  const modal = document.getElementById("modal-feedback-proa");
+  const iconBox = document.getElementById("feedback-icon-box");
+  const iconSym = document.getElementById("feedback-icon-symbol");
+  const titleEl = document.getElementById("feedback-title-txt");
+  const descEl = document.getElementById("feedback-desc-txt");
+  const btnOk = document.getElementById("feedback-btn-ok");
+
+  titleEl.innerText = titulo;
+  descEl.innerText = mensaje;
+
+  if (tipo === "SUCCESS") {
+    iconBox.className = "feedback-icon-circle icon-circle-success";
+    iconSym.innerText = "check";
+    btnOk.style.display = "none";
+  } else {
+    iconBox.className = "feedback-icon-circle icon-circle-error";
+    iconSym.innerText = "close";
+    btnOk.style.display = "inline-block";
+  }
+
+  modal.style.display = "flex";
+
+  if (autoCerrarMs > 0) {
+    setTimeout(() => {
+      modal.style.display = "none";
+    }, autoCerrarMs);
+  }
+};
+
+window.cerrarModalFeedback = function() {
+  document.getElementById("modal-feedback-proa").style.display = "none";
+};
+
+// 4. REGISTRAR EN PROA CON MODAL DE ÉXITO Y ERROR
 window.registrarEnProa = async function() {
   const rut = document.getElementById("in-rut").value.trim();
   const nombre = document.getElementById("in-nombres").value.trim();
@@ -436,10 +596,14 @@ window.registrarEnProa = async function() {
   const servicio = document.getElementById("in-servicio").value.trim();
   const cama = document.getElementById("in-cama").value.trim() || "S/I";
   const fechaISO = document.getElementById("in-fecha").value;
-  const digitador = document.getElementById("in-digitador").value.trim() || "TENS";
+  const digitador = document.getElementById("in-digitador").value.trim() || PERFIL_ACTUAL.nombre || "FRANCISCO BARRA";
 
   if (!rut || !nombre || !servicio) {
-    alert("Completa RUT, Nombres y Servicio Actual.");
+    mostrarModalFeedback(
+      "ERROR",
+      "Error",
+      "Faltan datos obligatorios del paciente: verifique RUT, Nombres y Servicio Actual."
+    );
     return;
   }
 
@@ -459,29 +623,59 @@ window.registrarEnProa = async function() {
   });
 
   if (!tratamientos.length) {
-    alert("Agrega al menos un antibiótico.");
+    mostrarModalFeedback(
+      "ERROR",
+      "Error",
+      "Debe ingresar al menos un antibiótico válido en el esquema de prescripción."
+    );
     return;
   }
 
+  const btnSubmit = document.getElementById("btn-submit-ingreso");
   const pill = document.getElementById("status-ingreso-pill");
-  pill.innerHTML = `<span>⏳ Cifrando y guardando en Firebase...</span>`;
+  const htmlOriginalBtn = btnSubmit.innerHTML;
 
-  const [y, m, d] = fechaISO.split("-");
-  const fechaCL = `${d}/${m}/${y}`;
+  try {
+    btnSubmit.innerHTML = `<span class="material-icons-round" style="font-size: 19px;">sync</span> <span>Sincronizando...</span>`;
+    btnSubmit.disabled = true;
+    pill.innerHTML = `<span>⏳ Sincronizando con Firestore...</span>`;
 
-  await registrarIngresoMultipleCifrado({
-    rut, nombre, apellido, servicio, cama, fecha: fechaCL, digitador, tratamientos
-  });
+    const [y, m, d] = fechaISO.split("-");
+    const fechaCL = `${d}/${m}/${y}`;
 
-  document.getElementById("in-rut").value = "";
-  document.getElementById("in-nombres").value = "";
-  document.getElementById("in-apellidos").value = "";
-  document.getElementById("in-cama").value = "";
-  document.getElementById("contenedor-filas-medicamentos").innerHTML = "";
-  agregarFilaMedicamento();
+    await registrarIngresoMultipleCifrado({
+      rut, nombre, apellido, servicio, cama, fecha: fechaCL, digitador, tratamientos
+    });
 
-  pill.innerHTML = `<span>● Sistema Listo</span> <span style="font-weight:500;">| Guardado exitoso ✓</span>`;
-  await cargarMatrizEnVivo();
+    // Mostrar modal idéntico a PROA 3.3: "¡Ingreso Exitoso! Se registraron X medicamentos."
+    mostrarModalFeedback(
+      "SUCCESS",
+      "¡Ingreso Exitoso!",
+      `Se registraron ${tratamientos.length} medicamentos.`,
+      1900
+    );
+
+    await registrarNotificacionPROA(
+      `${digitador} ingresó ${tratamientos.length} tratamiento(s) para el paciente ${nombre.toUpperCase()} ${apellido.toUpperCase()} en ${servicio.toUpperCase()}.`,
+      "INGRESO"
+    );
+
+    document.getElementById("in-rut").value = "";
+    document.getElementById("in-nombres").value = "";
+    document.getElementById("in-apellidos").value = "";
+    document.getElementById("in-cama").value = "";
+    document.getElementById("contenedor-filas-medicamentos").innerHTML = "";
+    agregarFilaMedicamento();
+
+    pill.innerHTML = `<span>● Sistema Listo</span> <span style="font-weight:500;">| Guardado exitoso ✓</span>`;
+    await cargarMatrizEnVivo();
+    await cargarNotificacionesEnVivo();
+  } catch (err) {
+    mostrarModalFeedback("ERROR", "Error", "Error en inyección: " + err.message);
+  } finally {
+    btnSubmit.innerHTML = htmlOriginalBtn;
+    btnSubmit.disabled = false;
+  }
 };
 
 // 5. CÁLCULO MATEMÁTICO DE VIGENCIA Y PLAZOS
@@ -616,14 +810,62 @@ window.renderizarTablaMatriz = function() {
     return;
   }
 
+  const esQF = PERFIL_ACTUAL.rol === "QF";
+
   tbody.innerHTML = filasFiltradas.map(f => {
     const m = calcularMetricasFila(f);
     const semG = m.tGracia >= 0 ? "sem-verde" : "sem-rojo";
     const semA = m.tAut >= 0 ? "sem-verde" : "sem-rojo";
+    const estUpper = f.estado.toUpperCase();
+    const diasVal = f.dias_autorizacion !== null && f.dias_autorizacion !== undefined ? f.dias_autorizacion : "";
+
+    // Color de fondo de la celda ESTADO idéntico a Google Sheets
+    const claseColorEstado = estUpper === "APROBADO"
+      ? "est-sheet-aprobado"
+      : estUpper === "RECHAZADO" ? "est-sheet-rechazado" : "est-sheet-solicitud";
+
+    const celdaEstadoHTML = esQF
+      ? `<select class="matrix-inline-select" onchange="guardarCeldaMatrizQF('${f.hashPaciente}', '${f.idTratamiento}', 'estado', this.value)">
+           <option value="SOLICITUD" ${estUpper === "SOLICITUD" ? "selected" : ""}>SOLICITUD</option>
+           <option value="APROBADO" ${estUpper === "APROBADO" ? "selected" : ""}>APROBADO</option>
+           <option value="RECHAZADO" ${estUpper === "RECHAZADO" ? "selected" : ""}>RECHAZADO</option>
+         </select>`
+      : `<span>${estUpper}</span>`;
+
+    // Limpieza visual para que nunca se muestre BARRA.FRANCISCO30 en visador ni digitador
+    const limpiarNombre = (nom) => {
+      if (!nom) return "";
+      return String(nom).toUpperCase() === "BARRA.FRANCISCO30" ? "FRANCISCO BARRA" : nom;
+    };
+    f.digitador = limpiarNombre(f.digitador);
+    f.visador = limpiarNombre(f.visador);
+
+    // Helper para generar casillas auto-ajustables en ancho y conectadas en tiempo real con la cuenta TENS
+    const celdaEditableQF = (campo, valor, catalogoAC = "", minAncho = 135) => {
+      const valLimpio = limpiarNombre(valor || "");
+      const valSeguro = String(valLimpio).replace(/"/g, "&quot;");
+      if (!esQF) return `<span style="padding: 0 4px;">${valSeguro}</span>`;
+
+      const anchoCalculado = Math.max(minAncho, valLimpio.length * 7.6 + 24);
+      const attrAC = catalogoAC ? `data-ac="${catalogoAC}"` : "";
+      return `<input type="text" class="matrix-editable-input nav-field"
+                     style="min-width: ${anchoCalculado}px;"
+                     ${attrAC}
+                     data-hash="${f.hashPaciente}"
+                     data-idtrat="${f.idTratamiento}"
+                     data-campo="${campo}"
+                     value="${valSeguro}"
+                     onchange="guardarCeldaMatrizQF('${f.hashPaciente}', '${f.idTratamiento}', '${campo}', this.value)">`;
+    };
+
+    const celdaDiasAutHTML = esQF
+      ? `<input type="number" class="matrix-inline-days" value="${diasVal}" placeholder="-"
+                onchange="guardarCeldaMatrizQF('${f.hashPaciente}', '${f.idTratamiento}', 'dias_autorizacion', this.value)">`
+      : `<b>${diasVal}</b>`;
 
     return `
       <tr>
-        <td class="td-azul"><b>${f.estado}</b></td>
+        <td class="td-estado-cell ${claseColorEstado}">${celdaEstadoHTML}</td>
         <td class="td-azul">${f.antimicrobiano}</td>
         <td class="td-azul" style="text-align:center;">${f.carga}</td>
         <td class="td-azul">${f.dosis}</td>
@@ -637,28 +879,243 @@ window.renderizarTablaMatriz = function() {
         <td class="td-azul">${f.apellido}</td>
         <td class="td-azul">${f.rut}</td>
         <td class="td-azul">${f.digitador}</td>
-        <!-- ZONA VERDE (W a Z) -->
-        <td class="td-verde">${f.diagnostico || ""}</td>
-        <td class="td-verde">${f.tipo_tratamiento || ""}</td>
-        <td class="td-verde">${f.tipo_terapia || ""}</td>
-        <td class="td-verde">${f.lugar_infeccion || ""}</td>
-        <!-- ZONA AMARILLA (AA a AG) -->
-        <td class="td-amarilla">${f.conducta || ""}</td>
-        <td class="td-amarilla" style="text-align:center;">${f.dias_autorizacion !== null && f.dias_autorizacion !== undefined ? f.dias_autorizacion : ""}</td>
-        <td class="td-amarilla">${f.uso_adecuado || ""}</td>
-        <td class="td-amarilla">${f.observaciones || ""}</td>
-        <td class="td-amarilla">${f.visador || ""}</td>
-        <td class="td-amarilla">${f.fecha_visado || ""}</td>
-        <td class="td-amarilla">${f.paciente_no_encontrado || ""}</td>
+        <!-- ZONA VERDE EDITABLE (W a Z) -->
+        <td class="td-verde">${celdaEditableQF("diagnostico", f.diagnostico, "diagnosticos")}</td>
+        <td class="td-verde">${celdaEditableQF("tipo_tratamiento", f.tipo_tratamiento, "tipoTto")}</td>
+        <td class="td-verde">${celdaEditableQF("tipo_terapia", f.tipo_terapia, "tipoTerapia")}</td>
+        <td class="td-verde">${celdaEditableQF("lugar_infeccion", f.lugar_infeccion, "lugarInf")}</td>
+        <!-- ZONA AMARILLA EDITABLE (AA a AG) -->
+        <td class="td-amarilla">${celdaEditableQF("conducta", f.conducta, "estadoClinico")}</td>
+        <td class="td-amarilla" style="text-align:center;">${celdaDiasAutHTML}</td>
+        <td class="td-amarilla">${celdaEditableQF("uso_adecuado", f.uso_adecuado, "usoAdecuado")}</td>
+        <td class="td-amarilla">${celdaEditableQF("observaciones", f.observaciones, "")}</td>
+        <td class="td-amarilla">${celdaEditableQF("visador", f.visador, "visadores")}</td>
+        <td class="td-amarilla">${celdaEditableQF("fecha_visado", f.fecha_visado, "")}</td>
+        <td class="td-amarilla">${celdaEditableQF("paciente_no_encontrado", f.paciente_no_encontrado, "pacNoEncontrado")}</td>
       </tr>
     `;
   }).join("");
 };
 
+// Guarda cualquier celda editada en la Matriz Bruta (Estado, Días, Zona Verde o Zona Amarilla)
+window.guardarCeldaMatrizQF = async function(hashPaciente, idTratamiento, campo, nuevoValor) {
+  if (PERFIL_ACTUAL.rol !== "QF") return;
+  const fila = MEMORIA_FILAS.find(x => x.hashPaciente === hashPaciente && x.idTratamiento === idTratamiento);
+  if (!fila) return;
+
+  const nombreQF = PERFIL_ACTUAL.nombre || "FRANCISCO BARRA";
+  const hoyCL = hoyFormateadoCL();
+  const camposUpdate = {};
+  let bovedaClinicaNueva = null;
+
+  if (campo === "estado") {
+    const estNuevo = nuevoValor.toUpperCase();
+    camposUpdate.estado = estNuevo;
+    camposUpdate.visador = fila.visador || nombreQF;
+    camposUpdate.fecha_visado = fila.fecha_visado || hoyCL;
+
+    if (estNuevo === "APROBADO") {
+      camposUpdate.conducta = fila.conducta || "AUTORIZADO";
+      if (!fila.dias_autorizacion || Number(fila.dias_autorizacion) <= 0) {
+        const pedir = prompt(`Ingrese los días de aprobación para ${fila.antimicrobiano} (${fila.nombre} ${fila.apellido}):`, "7");
+        if (pedir === null) { renderizarTablaMatriz(); return; }
+        camposUpdate.dias_autorizacion = Number(pedir) || 7;
+      }
+    } else if (estNuevo === "RECHAZADO") {
+      camposUpdate.conducta = "SUSPENDIDO";
+    }
+  } else if (campo === "dias_autorizacion") {
+    camposUpdate.dias_autorizacion = nuevoValor !== "" ? Number(nuevoValor) : null;
+    camposUpdate.visador = fila.visador || nombreQF;
+    camposUpdate.fecha_visado = fila.fecha_visado || hoyCL;
+  } else if (campo === "diagnostico" || campo === "observaciones") {
+    bovedaClinicaNueva = {
+      diagnostico: campo === "diagnostico" ? nuevoValor.trim().toUpperCase() : (fila.diagnostico || ""),
+      observaciones: campo === "observaciones" ? nuevoValor.trim() : (fila.observaciones || "")
+    };
+    camposUpdate.visador = fila.visador || nombreQF;
+    camposUpdate.fecha_visado = fila.fecha_visado || hoyCL;
+  } else {
+    camposUpdate[campo] = nuevoValor.trim();
+    if (!fila.visador) camposUpdate.visador = nombreQF;
+    if (!fila.fecha_visado) camposUpdate.fecha_visado = hoyCL;
+  }
+
+  await actualizarRapidoDesdeMatriz(hashPaciente, idTratamiento, camposUpdate, bovedaClinicaNueva);
+
+  // Generar notificación descriptiva
+  const descCampo = campo.replace(/_/g, " ").toUpperCase();
+  const msg = campo === "estado"
+    ? `QF ${nombreQF} cambió el estado de ${fila.nombre} ${fila.apellido} (${fila.antimicrobiano}) a ${camposUpdate.estado}${camposUpdate.dias_autorizacion ? " por " + camposUpdate.dias_autorizacion + " días" : ""}.`
+    : `QF ${nombreQF} actualizó ${descCampo} ("${nuevoValor}") en el paciente ${fila.nombre} ${fila.apellido} (${fila.antimicrobiano}).`;
+
+  await registrarNotificacionPROA(msg, "MATRIZ_QF");
+  await cargarMatrizEnVivo();
+  await cargarNotificacionesEnVivo();
+};
+
+// Guarda al instante el cambio hecho por el QF en la Matriz Bruta y genera la notificación
+window.cambioRapidoMatrizQF = async function(hashPaciente, idTratamiento, nuevoEstado, nuevosDias) {
+  if (PERFIL_ACTUAL.rol !== "QF") return;
+  const fila = MEMORIA_FILAS.find(x => x.hashPaciente === hashPaciente && x.idTratamiento === idTratamiento);
+  if (!fila) return;
+
+  const estadoAnterior = fila.estado.toUpperCase();
+  let diasFinales = nuevosDias;
+
+  // Si pasa a APROBADO desde la tabla y no tenía días puestos, sugerimos 7 días o preguntamos
+  if (nuevoEstado === "APROBADO" && (diasFinales === "" || diasFinales === null || Number(diasFinales) <= 0)) {
+    const pedirDias = prompt(`Ingrese los días de aprobación para ${fila.antimicrobiano} (${fila.nombre} ${fila.apellido}):`, "7");
+    if (pedirDias === null) {
+      renderizarTablaMatriz();
+      return;
+    }
+    diasFinales = Number(pedirDias) || 7;
+  }
+
+  const nombreQF = PERFIL_ACTUAL.nombre || "QF";
+  await actualizarRapidoDesdeMatriz(hashPaciente, idTratamiento, nuevoEstado, diasFinales, nombreQF);
+
+  const textoDias = nuevoEstado === "APROBADO" ? ` por ${diasFinales} días` : "";
+  const msgNotif = `QF ${nombreQF} cambió el estado del paciente ${fila.nombre} ${fila.apellido} (${fila.antimicrobiano}) de ${estadoAnterior} a ${nuevoEstado}${textoDias}.`;
+  await registrarNotificacionPROA(msgNotif, "VISACION");
+
+  await cargarMatrizEnVivo();
+  await cargarNotificacionesEnVivo();
+};
+
+function iniciarCarruselAutomaticoSidebar() {
+  if (TIMER_CARRUSEL_SIDEBAR) clearInterval(TIMER_CARRUSEL_SIDEBAR);
+  TIMER_CARRUSEL_SIDEBAR = setInterval(() => {
+    const queryTxt = (document.getElementById("input-buscador-lateral")?.value || "").trim();
+    if (MODO_SIDEBAR === "PACIENTES" && !queryTxt && !VER_LISTA_PACIENTES_SIDEBAR) {
+      INDICE_CARRUSEL_SRV++;
+      renderizarBarraLateral();
+    }
+  }, 5000);
+}
+
+window.cambiarServicioCarruselManual = function(idx) {
+  INDICE_CARRUSEL_SRV = idx;
+  renderizarBarraLateral();
+};
+
+window.toggleVerListaPacientesSidebar = function() {
+  VER_LISTA_PACIENTES_SIDEBAR = !VER_LISTA_PACIENTES_SIDEBAR;
+  renderizarBarraLateral();
+};
+
 window.renderizarBarraLateral = function() {
   const queryTxt = (document.getElementById("input-buscador-lateral").value || "").trim().toUpperCase();
   const contenedor = document.getElementById("contenedor-tarjetas-buscador");
+  const contChips = document.getElementById("contenedor-chips-servicios");
+  const esQF = PERFIL_ACTUAL.rol === "QF";
 
+  // Si estamos en modo PACIENTES, sin búsqueda escrita y en modo Monitor Vivo -> Mostrar Carrusel 5 seg (Imagen 4)
+  if (MODO_SIDEBAR === "PACIENTES" && !queryTxt && !VER_LISTA_PACIENTES_SIDEBAR && MEMORIA_FILAS.length > 0) {
+    if (contChips) contChips.style.display = "none";
+
+    // Obtener servicios que tienen registros
+    const serviciosConDatos = Array.from(new Set(MEMORIA_FILAS.map(f => (f.servicio || "SIN SERVICIO").toUpperCase()))).sort();
+    if (serviciosConDatos.length === 0) serviciosConDatos.push("URG ADULTO");
+
+    const idxActual = INDICE_CARRUSEL_SRV % serviciosConDatos.length;
+    const srvActual = serviciosConDatos[idxActual];
+    const filasDelSrv = MEMORIA_FILAS.filter(f => (f.servicio || "").toUpperCase() === srvActual);
+
+    let contUltimoDia = 0;
+    let contPorVisar = 0;
+    let contActivos = 0;
+    const conteoAtb = {};
+
+    filasDelSrv.forEach(f => {
+      const m = calcularMetricasFila(f);
+      if (f.estado.toUpperCase() === "SOLICITUD") contPorVisar++;
+      if (m.esVigente) {
+        contActivos++;
+        if (m.contadorActivo === 0 || m.esCarga) contUltimoDia++;
+      }
+      if (f.antimicrobiano) {
+        conteoAtb[f.antimicrobiano] = (conteoAtb[f.antimicrobiano] || 0) + 1;
+      }
+    });
+
+    const top3Atb = Object.entries(conteoAtb)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
+
+    document.getElementById("texto-coincidencias").innerHTML = `
+      <span>Monitor en vivo • Rotación 5s</span> •
+      <a onclick="toggleVerListaPacientesSidebar()" style="color:#0066ff; cursor:pointer; font-weight:800;">Ver todos los pacientes (${MEMORIA_FILAS.length})</a>
+    `;
+
+    const dotsHTML = serviciosConDatos.map((s, i) => `
+      <span class="live-dot ${i === idxActual ? "active" : ""}" title="${s}" onclick="cambiarServicioCarruselManual(${i})"></span>
+    `).join("");
+
+    const rankingHTML = top3Atb.length > 0
+      ? top3Atb.map(([nombreAtb, cant], i) => `
+          <div class="ranking-item-row">
+            <div class="ranking-atb-name">
+              <span style="color:#94a3b8;">${i + 1}.</span>
+              <span>${nombreAtb}</span>
+            </div>
+            <span class="ranking-pill-count">${cant}</span>
+          </div>
+        `).join("")
+      : `<div style="font-size:11px; color:#94a3b8; text-align:center; padding:8px;">Sin antimicrobianos en este servicio</div>`;
+
+    contenedor.innerHTML = `
+      <div class="live-dashboard-wrap">
+        <div class="live-srv-header">
+          <div class="live-srv-title">
+            <span class="material-icons-round" style="font-size:19px;">meeting_room</span>
+            <span>${srvActual}</span>
+          </div>
+          <div class="live-dots-row">${dotsHTML}</div>
+        </div>
+
+        <div class="live-kpi-grid">
+          <div class="live-kpi-card" onclick="irAServicioDesdeMonitor('${srvActual}')">
+            <div class="kpi-icon-box kpi-icon-red">
+              <span class="material-icons-round">event_busy</span>
+            </div>
+            <div class="kpi-big-num" style="color:#ef4444;">${contUltimoDia}</div>
+            <div class="kpi-label">Último Día</div>
+          </div>
+
+          <div class="live-kpi-card" onclick="irAServicioDesdeMonitor('${srvActual}')">
+            <div class="kpi-icon-box kpi-icon-orange">
+              <span class="material-icons-round">schedule</span>
+            </div>
+            <div class="kpi-big-num" style="color:#f59e0b;">${contPorVisar}</div>
+            <div class="kpi-label">Por Visar</div>
+          </div>
+        </div>
+
+        <div class="live-activos-banner" onclick="irAServicioDesdeMonitor('${srvActual}')">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div class="kpi-icon-box kpi-icon-green">
+              <span class="material-icons-round">verified_user</span>
+            </div>
+            <span style="font-size:13px; font-weight:700; color:#64748b;">Tratamientos Activos</span>
+          </div>
+          <span style="font-size:28px; font-weight:800; color:#22c55e;">${contActivos}</span>
+        </div>
+
+        <div class="live-ranking-card">
+          <div class="live-ranking-header">
+            <span class="material-icons-round" style="color:#0066ff; font-size:15px;">insights</span>
+            <span>RANKING ANTIMICROBIANOS</span>
+          </div>
+          ${rankingHTML}
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // MODO LISTA DE PACIENTES O PESTAÑA SERVICIOS
   const pacientesMap = {};
   MEMORIA_FILAS.forEach(f => {
     const key = f.hashPaciente || f.rut;
@@ -677,8 +1134,6 @@ window.renderizarBarraLateral = function() {
 
   const todosLosPacientes = Object.values(pacientesMap);
 
-  // Si estamos en la pestaña SERVICIOS, dibujamos los botones de cada Servicio con su cantidad de pacientes
-  const contChips = document.getElementById("contenedor-chips-servicios");
   if (contChips) {
     if (MODO_SIDEBAR === "SERVICIOS") {
       contChips.style.display = "flex";
@@ -724,7 +1179,11 @@ window.renderizarBarraLateral = function() {
     return p.rut.includes(queryTxt) || p.nombreCompleto.includes(queryTxt) || p.servicio.includes(queryTxt);
   });
 
-  document.getElementById("texto-coincidencias").innerText = `${listaPacientes.length} coincidencias`;
+  const linkVolverMonitor = (MODO_SIDEBAR === "PACIENTES" && !queryTxt && VER_LISTA_PACIENTES_SIDEBAR)
+    ? ` • <a onclick="toggleVerListaPacientesSidebar()" style="color:#0066ff; cursor:pointer; font-weight:800;">Volver al Monitor Vivo</a>`
+    : "";
+
+  document.getElementById("texto-coincidencias").innerHTML = `${listaPacientes.length} coincidencias${linkVolverMonitor}`;
 
   contenedor.innerHTML = listaPacientes.map(p => {
     const estaExpandido = PACIENTES_EXPANDIDOS.has(p.key) || listaPacientes.length === 1;
@@ -780,28 +1239,54 @@ window.renderizarBarraLateral = function() {
       return `<div class="resumen-line"><b>${atb}</b> ➡️ ${info.totalDias} días de tratamiento. ${estadoTxt}</div>`;
     }).join("");
 
+    const botonEditarHTML = esQF
+      ? `<button class="btn-card-action" onclick="abrirModalVisacion('${p.key}')">
+           <span class="material-icons-round" style="font-size:14px;">edit</span>
+           <span>Auditar / Editar</span>
+         </button>`
+      : "";
+
+    const iniciales = p.nombreCompleto
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(n => n[0])
+      .join("");
+
     return `
       <div class="p-card">
-        <div class="p-card-name">${p.nombreCompleto}</div>
-        <div class="p-card-meta">
-          <div class="meta-item"><span class="material-icons-round" style="font-size:14px;">domain</span> ${p.servicio}</div>
-          <div class="meta-item"><span class="material-icons-round" style="font-size:14px;">bed</span> ${p.cama}</div>
-          <div class="meta-item" style="grid-column: span 2;"><span class="material-icons-round" style="font-size:14px;">badge</span> ${rutResaltado}</div>
+        <div class="p-card-header-elegant">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="p-card-avatar">${iniciales || "PT"}</div>
+            <div>
+              <div class="p-card-name" style="margin-bottom:2px;">${p.nombreCompleto}</div>
+              <div style="font-size:11px; font-weight:700; color:#64748b;">RUT: ${rutResaltado}</div>
+            </div>
+          </div>
+          <span style="font-size:10px; font-weight:800; background:#eff6ff; color:#0284c7; padding:3px 8px; border-radius:20px;">
+            ${p.filas.length} ATB
+          </span>
         </div>
 
-        <div class="p-card-actions">
+        <div class="p-card-pills-row" style="display:flex; gap:6px; margin-bottom:12px;">
+          <span class="meta-pill-badge">
+            <span class="material-icons-round" style="font-size:13px; color:#0284c7;">domain</span> ${p.servicio}
+          </span>
+          <span class="meta-pill-badge">
+            <span class="material-icons-round" style="font-size:13px; color:#0284c7;">bed</span> Cama: ${p.cama}
+          </span>
+        </div>
+
+        <div class="p-card-actions" style="grid-template-columns: ${esQF ? "1fr 1fr" : "1fr"};">
           <button class="btn-card-action" onclick="toggleDetalleTarjeta('${p.key}')">
             <span class="material-icons-round" style="font-size:15px;">${estaExpandido ? "expand_less" : "expand_more"}</span>
-            <span>${estaExpandido ? "Ocultar" : "Ver Detalles"}</span>
+            <span>${estaExpandido ? "Ocultar Terapias" : "Ver Terapias"}</span>
           </button>
-          <button class="btn-card-action" onclick="abrirModalVisacion('${p.key}')">
-            <span class="material-icons-round" style="font-size:14px;">edit</span>
-            <span>Editar</span>
-          </button>
+          ${botonEditarHTML}
         </div>
 
-        <div class="p-card-details" style="display: ${estaExpandido ? "block" : "none"};">
-          <div class="details-section-title">LISTADO DE TRATAMIENTOS</div>
+        <div class="p-card-details" style="display: ${estaExpandido ? "block" : "none"}; animation: fadeInLive 0.25s ease;">
+          <div class="details-section-title">ESQUEMA ANTIMICROBIANO</div>
           ${htmlTratamientos}
 
           <div class="resumen-historico-box">
@@ -812,6 +1297,72 @@ window.renderizarBarraLateral = function() {
       </div>
     `;
   }).join("");
+};
+
+window.irAServicioDesdeMonitor = function(srv) {
+  MODO_SIDEBAR = "SERVICIOS";
+  SERVICIO_SELECCIONADO_SIDEBAR = srv;
+  document.getElementById("tab-btn-pacientes").classList.remove("active");
+  document.getElementById("tab-btn-servicios").classList.add("active");
+  renderizarBarraLateral();
+};
+
+window.toggleDetalleTarjeta = function(key) {
+  if (PACIENTES_EXPANDIDOS.has(key)) PACIENTES_EXPANDIDOS.delete(key);
+  else PACIENTES_EXPANDIDOS.add(key);
+  renderizarBarraLateral();
+};
+
+window.seleccionarServicioSidebar = function(srv) {
+  SERVICIO_SELECCIONADO_SIDEBAR = srv;
+  renderizarBarraLateral();
+};
+
+window.cambiarModoBusqueda = function(modo) {
+  MODO_SIDEBAR = modo;
+  if (modo === "PACIENTES") {
+    SERVICIO_SELECCIONADO_SIDEBAR = "TODOS";
+    VER_LISTA_PACIENTES_SIDEBAR = false;
+  }
+  document.getElementById("tab-btn-pacientes").classList.toggle("active", modo === "PACIENTES");
+  document.getElementById("tab-btn-servicios").classList.toggle("active", modo === "SERVICIOS");
+  renderizarBarraLateral();
+};
+
+window.limpiarBuscadorLateral = function() {
+  document.getElementById("input-buscador-lateral").value = "";
+  VER_LISTA_PACIENTES_SIDEBAR = false;
+  renderizarBarraLateral();
+};
+
+// CENTRO DE NOTIFICACIONES CLÍNICAS
+window.togglePanelNotificaciones = function() {
+  const panel = document.getElementById("panel-notificaciones");
+  const visible = panel.style.display === "flex";
+  panel.style.display = visible ? "none" : "flex";
+  if (!visible) {
+    document.getElementById("notif-badge").style.display = "none";
+  }
+};
+
+window.cargarNotificacionesEnVivo = async function() {
+  const lista = await obtenerNotificacionesDescifradas();
+  const badge = document.getElementById("notif-badge");
+  const cont = document.getElementById("lista-notificaciones-dom");
+
+  if (lista.length > 0) {
+    badge.innerText = lista.length;
+    badge.style.display = "inline-block";
+    cont.innerHTML = lista.map(n => `
+      <div class="notif-item">
+        <div>🧑‍⚕️ ${n.mensaje}</div>
+        <span class="notif-time">🕒 ${n.fecha_hora}</span>
+      </div>
+    `).join("");
+  } else {
+    badge.style.display = "none";
+    cont.innerHTML = `<div style="padding: 20px; text-align: center; color: #94a3b8; font-size: 12px;">Sin notificaciones registradas aún.</div>`;
+  }
 };
 
 window.toggleDetalleTarjeta = function(key) {
@@ -1187,6 +1738,13 @@ window.guardarCambiosVisacionQF = async function() {
     tratamientos: tratamientosPayload
   });
 
+  const nomPac = `${document.getElementById("aud-nombres").value} ${document.getElementById("aud-apellidos").value}`.trim();
+  for (const t of tratamientosPayload) {
+    const diasTxt = t.diasAprob ? ` por ${t.diasAprob} días` : "";
+    await registrarNotificacionPROA(`QF ${t.visador || PERFIL_ACTUAL.nombre} actualizó el tratamiento del paciente ${nomPac} (${t.antimicrobiano}) a estado ${t.estado}${diasTxt}.`, "AUDITORIA");
+  }
+  await cargarNotificacionesEnVivo();
+
   btn.innerHTML = `<span class="material-icons-round" style="font-size: 19px;">save</span> <span>GUARDAR VISACIÓN Y SINCRONIZAR</span>`;
   btn.disabled = false;
 
@@ -1299,3 +1857,39 @@ window.guardarCambiosVisacionQF = async function() {
   cerrarModalVisacion();
   await cargarMatrizEnVivo();
 };
+
+// =========================================================================
+// MOTOR DE TEMA VISUAL: MODO DÍA (LIGHT), NOCHE (DARK) Y AUTOMÁTICO (AUTO)
+// =========================================================================
+let MODO_TEMA_ACTUAL = localStorage.getItem("proa_v4_theme_mode") || "AUTO";
+
+window.cambiarTemaPROA = function(modo) {
+  MODO_TEMA_ACTUAL = modo;
+  localStorage.setItem("proa_v4_theme_mode", modo);
+
+  document.getElementById("theme-btn-light")?.classList.toggle("active", modo === "LIGHT");
+  document.getElementById("theme-btn-dark")?.classList.toggle("active", modo === "DARK");
+  document.getElementById("theme-btn-auto")?.classList.toggle("active", modo === "AUTO");
+
+  let usarOscuro = false;
+  if (modo === "DARK") {
+    usarOscuro = true;
+  } else if (modo === "AUTO") {
+    const prefiereSistemaOscuro = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const horaActual = new Date().getHours();
+    const esHorarioNocturno = (horaActual >= 20 || horaActual < 7);
+    usarOscuro = prefiereSistemaOscuro || esHorarioNocturno;
+  }
+
+  document.body.classList.toggle("dark-mode", usarOscuro);
+};
+
+// Inicializar tema al cargar y escuchar cambios del sistema operativo
+document.addEventListener("DOMContentLoaded", () => {
+  cambiarTemaPROA(MODO_TEMA_ACTUAL);
+  if (window.matchMedia) {
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+      if (MODO_TEMA_ACTUAL === "AUTO") cambiarTemaPROA("AUTO");
+    });
+  }
+});

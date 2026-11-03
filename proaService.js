@@ -1,4 +1,4 @@
-import { getFirestore, doc, setDoc, addDoc, getDoc, getDocs, updateDoc, deleteDoc, collection, serverTimestamp } from "firebase/firestore";
+import { getFirestore, doc, setDoc, addDoc, getDoc, getDocs, updateDoc, deleteDoc, collection, serverTimestamp, onSnapshot } from "firebase/firestore";
 import { auth, obtenerLlaveSesion } from "./auth.js";
 
 const db = getFirestore();
@@ -74,7 +74,7 @@ async function cifrarObjeto(objeto, secretKey) {
   };
 }
 
-async function descifrarObjeto(boveda, secretKey) {
+async function intentarDescifradoConClave(boveda, claveTexto) {
   const enc = new TextEncoder();
   const dec = new TextDecoder();
 
@@ -82,7 +82,7 @@ async function descifrarObjeto(boveda, secretKey) {
   const iv = new Uint8Array(atob(boveda.iv).split("").map(c => c.charCodeAt(0)));
   const data = new Uint8Array(atob(boveda.payload).split("").map(c => c.charCodeAt(0)));
 
-  const baseKey = await crypto.subtle.importKey("raw", enc.encode(secretKey), "PBKDF2", false, ["deriveKey"]);
+  const baseKey = await crypto.subtle.importKey("raw", enc.encode(claveTexto), "PBKDF2", false, ["deriveKey"]);
   const aesKey = await crypto.subtle.deriveKey(
     { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
     baseKey, { name: "AES-GCM", length: 256 }, false, ["decrypt"]
@@ -90,6 +90,27 @@ async function descifrarObjeto(boveda, secretKey) {
 
   const decryptedBuffer = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, aesKey, data);
   return JSON.parse(dec.decode(decryptedBuffer));
+}
+
+async function descifrarObjeto(boveda, secretKey) {
+  try {
+    return await intentarDescifradoConClave(boveda, secretKey);
+  } catch (e) {
+    // Compatibilidad automática con los pacientes creados en las primeras pruebas
+    return await intentarDescifradoConClave(boveda, "tsubasa314");
+  }
+}
+
+// Escucha cambios en tiempo real en Firestore sin necesidad de botón de sincronizar
+export function suscribirCambiosEnTiempoReal(callbackRecarga) {
+  let debounceTimer = null;
+  const disparar = () => {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => callbackRecarga(), 250);
+  };
+  onSnapshot(collection(db, "pacientes"), disparar);
+  onSnapshot(doc(db, "sistema_config", "registro_notificaciones"), disparar);
+  onSnapshot(doc(db, "sistema_config", "pulso_tiempo_real"), disparar);
 }
 
 export async function registrarIngresoMultipleCifrado(payload) {
@@ -329,4 +350,103 @@ export async function inicializarCatalogosSistema() {
 export async function obtenerCatalogosSistema() {
   const snap = await getDoc(doc(db, "sistema_config", "listas_maestras"));
   return snap.exists() ? snap.data() : null;
+}
+
+// =========================================================================
+// PERFILES DE ROL (QF vs TENS), EDICIÓN EN MATRIZ BRUTA Y NOTIFICACIONES
+// =========================================================================
+
+export async function guardarPerfilUsuario(uid, datosPerfil) {
+  await setDoc(doc(db, "sistema_config", "usuarios_roles"), {
+    [uid]: {
+      nombre: datosPerfil.nombre.trim().toUpperCase(),
+      rol: datosPerfil.rol, // "QF" o "TENS"
+      email: datosPerfil.email,
+      actualizado: new Date().toISOString()
+    }
+  }, { merge: true });
+}
+
+export async function obtenerPerfilUsuario(uid) {
+  const snap = await getDoc(doc(db, "sistema_config", "usuarios_roles"));
+  if (snap.exists() && snap.data()[uid]) {
+    return snap.data()[uid];
+  }
+  return null;
+}
+
+// Edición completa en vivo de cualquier celda (Estado, Zona Verde y Zona Amarilla) desde la Matriz en Bruto
+export async function actualizarRapidoDesdeMatriz(hashPaciente, idTratamiento, camposNuevos, bovedaClinicaActualizada = null) {
+  const passwordSesion = obtenerLlaveSesion();
+  const tratRef = doc(db, "pacientes", hashPaciente, "tratamientos", idTratamiento);
+
+  const payloadUpdate = { ...camposNuevos };
+
+  if (bovedaClinicaActualizada) {
+    payloadUpdate.boveda_clinica = await cifrarObjeto({
+      diagnostico: bovedaClinicaActualizada.diagnostico || "",
+      observaciones: bovedaClinicaActualizada.observaciones || ""
+    }, passwordSesion);
+  }
+
+  await updateDoc(tratRef, payloadUpdate);
+  await setDoc(doc(db, "pacientes", hashPaciente), { ultima_modificacion: serverTimestamp() }, { merge: true });
+  await setDoc(doc(db, "sistema_config", "pulso_tiempo_real"), { ts: Date.now() }, { merge: true });
+  return { exito: true };
+}
+
+// Guarda las notificaciones en sistema_config/registro_notificaciones (100% permitido por las reglas de Firestore)
+export async function registrarNotificacionPROA(mensajeClaro, tipo = "VISACION") {
+  try {
+    const passwordSesion = obtenerLlaveSesion();
+    const bovedaNotif = await cifrarObjeto({ mensaje: mensajeClaro }, passwordSesion);
+    const refNotif = doc(db, "sistema_config", "registro_notificaciones");
+    const snap = await getDoc(refNotif);
+    let historial = [];
+    if (snap.exists() && Array.isArray(snap.data().items)) {
+      historial = snap.data().items;
+    }
+
+    historial.unshift({
+      id: "n_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+      tipo,
+      boveda_notif: bovedaNotif,
+      fecha_hora: new Date().toLocaleString("es-CL"),
+      creado_ms: Date.now()
+    });
+
+    // Mantener las últimas 40 notificaciones
+    await setDoc(refNotif, {
+      items: historial.slice(0, 40),
+      actualizado_ms: Date.now()
+    }, { merge: true });
+  } catch (e) {
+    console.warn("Error registrando notificación:", e);
+  }
+}
+
+export async function obtenerNotificacionesDescifradas() {
+  try {
+    const passwordSesion = obtenerLlaveSesion();
+    const snap = await getDoc(doc(db, "sistema_config", "registro_notificaciones"));
+    if (!snap.exists() || !Array.isArray(snap.data().items)) return [];
+
+    const lista = [];
+    for (const item of snap.data().items) {
+      if (!item.boveda_notif) continue;
+      try {
+        const claro = await descifrarObjeto(item.boveda_notif, passwordSesion);
+        lista.push({
+          id: item.id,
+          tipo: item.tipo || "INFO",
+          mensaje: claro.mensaje,
+          fecha_hora: item.fecha_hora || "",
+          creado_ms: item.creado_ms || 0
+        });
+      } catch (err) {}
+    }
+    return lista;
+  } catch (e) {
+    return [];
+  }
 }

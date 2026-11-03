@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "firebase/auth";
 
 // Tu configuración de Firebase PROA v4
 const firebaseConfig = {
@@ -14,14 +14,24 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// Variable en memoria volátil (desaparece al cerrar pestaña o recargar)
+// Llave Institucional Compartida en memoria volátil (se activa solo tras autenticar cualquier cuenta del hospital)
 let sessionEncryptionKey = null;
+const LLAVE_INSTITUCIONAL_PROA = "HEP_PROA_V4_MASTER_VAULT_2026";
 
 export async function loginUsuario(email, password) {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    // Guardamos la contraseña en memoria exclusivamente para alimentar el motor AES
-    sessionEncryptionKey = password;
+    sessionEncryptionKey = LLAVE_INSTITUCIONAL_PROA;
+    return { exito: true, user: userCredential.user };
+  } catch (error) {
+    return { exito: false, mensaje: error.message };
+  }
+}
+
+export async function crearCuentaUsuario(email, password) {
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    sessionEncryptionKey = LLAVE_INSTITUCIONAL_PROA;
     return { exito: true, user: userCredential.user };
   } catch (error) {
     return { exito: false, mensaje: error.message };
