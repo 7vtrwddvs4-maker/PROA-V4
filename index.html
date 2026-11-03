@@ -5,11 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PROA v4.0 - Hospital El Pino</title>
   
-  <!-- Configuración de App Instalable (PWA) -->
+  <!-- Configuración de App Instalable (PWA) e Icono -->
   <link rel="manifest" href="./manifest.json">
-  <link rel="icon" type="image/jpeg" href="./logo-proa.jpg">
-  <link rel="apple-touch-icon" href="./logo-proa.jpg">
+  <link rel="icon" type="image/jpeg" href="./logo-proa.jpg.jfif">
+  <link rel="apple-touch-icon" href="./logo-proa.jpg.jfif">
   <meta name="theme-color" content="#1e3a8a">
+
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css">
@@ -77,11 +78,10 @@
     </div>
   </div>
 
-  <!-- MODAL COMPLETO: PROA 4.0 AUDITORÍA CLÍNICA (IDÉNTICO A TUS CAPTURAS) -->
+  <!-- MODAL COMPLETO: PROA 4.0 AUDITORÍA CLÍNICA -->
   <div id="modal-visacion-qf" style="display: none;">
     <div class="auditoria-modal-window">
       
-      <!-- Cabecera Modal -->
       <div class="auditoria-modal-header">
         <div class="auditoria-header-title">
           <span class="material-icons-round" style="font-size: 22px;">fact_check</span>
@@ -90,10 +90,8 @@
         <button onclick="cerrarModalVisacion()" style="border:none; background:none; cursor:pointer; font-size:20px; color:#64748b;">✕</button>
       </div>
 
-      <!-- Cuerpo Scrollable -->
       <div class="auditoria-modal-body">
         
-        <!-- 1. BÚSQUEDA E IDENTIFICACIÓN DE PACIENTE -->
         <div class="auditoria-section-card">
           <div class="section-heading" style="margin-bottom: 12px;">
             <span class="material-icons-round" style="font-size: 18px;">badge</span>
@@ -128,7 +126,6 @@
           </div>
         </div>
 
-        <!-- 2. ACORDEÓN: HISTORIAL CLÍNICO (TRATAMIENTOS FINALIZADOS) -->
         <div>
           <div class="historial-accordion-bar" onclick="toggleAcordeonHistorialModal()">
             <div style="display: flex; align-items: center; gap: 8px;">
@@ -140,7 +137,6 @@
           <div class="historial-accordion-content" id="contenedor-historial-modal"></div>
         </div>
 
-        <!-- 3. AUDITORÍA DE TRATAMIENTOS ACTIVOS -->
         <div class="auditoria-section-card">
           <div class="section-heading">
             <span class="material-icons-round" style="font-size: 18px;">playlist_add_check</span>
@@ -158,7 +154,6 @@
 
       </div>
 
-      <!-- Pie Fijo: Botón Azul Guardar Visación y Sincronizar -->
       <div class="auditoria-modal-footer">
         <button type="button" class="btn-guardar-visacion-azul" id="btn-submit-visacion" onclick="guardarCambiosVisacionQF()">
           <span class="material-icons-round" style="font-size: 19px;">save</span>
@@ -181,8 +176,7 @@
           <img src="./logo-proa.jpg.jfif" alt="PROA 4.0" class="hep-logo">
           <div class="app-title">PROA v4.0 • FARMACIA CLÍNICA</div>
         </div>
-          <div class="app-title">PROA v4.0 • FARMACIA CLÍNICA</div>
-        </div>
+
         <div class="header-right">
           <button id="btn-top-auditoria-qf" class="btn-add-med" style="margin:0; background:#eff6ff; border-color:#bfdbfe;" onclick="abrirModalVisacionVacio()">
             <span class="material-icons-round" style="font-size:16px;">fact_check</span>
@@ -195,9 +189,6 @@
             <button type="button" id="theme-btn-dark" class="theme-btn" onclick="cambiarTemaPROA('DARK')">🌙 Noche</button>
             <button type="button" id="theme-btn-auto" class="theme-btn active" onclick="cambiarTemaPROA('AUTO')">🌗 Auto</button>
           </div>
-
-          <!-- Botón de Notificaciones en Vivo -->
-          <div class="notif-wrapper">
 
           <!-- Botón de Notificaciones en Vivo -->
           <div class="notif-wrapper">
@@ -402,7 +393,7 @@
           <button class="seg-btn" id="tab-btn-servicios" onclick="cambiarModoBusqueda('SERVICIOS')">Servicios</button>
         </div>
 
-        <!-- BOTONERA SELECCIONABLE DE SERVICIOS (Visible al elegir pestaña Servicios) -->
+        <!-- BOTONERA SELECCIONABLE DE SERVICIOS -->
         <div id="contenedor-chips-servicios" class="servicios-chips-grid" style="display: none;"></div>
 
         <div class="search-input-wrapper">
@@ -419,7 +410,7 @@
 
   </div>
 
-  <!-- DATALISTS OFICIALES PARA AUTOCOMPLETADO -->
+  <!-- DATALISTS OFICIALES -->
   <datalist id="dl-antimicrobianos"></datalist>
   <datalist id="dl-dosis"></datalist>
   <datalist id="dl-frecuencias"></datalist>
