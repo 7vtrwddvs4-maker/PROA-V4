@@ -375,23 +375,40 @@ export async function obtenerPerfilUsuario(uid) {
   return null;
 }
 
-// Edición completa en vivo de cualquier celda (Estado, Zona Verde y Zona Amarilla) desde la Matriz en Bruto
-export async function actualizarRapidoDesdeMatriz(hashPaciente, idTratamiento, camposNuevos, bovedaClinicaActualizada = null) {
+// Edición completa en vivo de cualquier celda (Zona Azul, Zona Verde y Zona Amarilla) desde la Matriz General
+export async function actualizarRapidoDesdeMatriz(hashPaciente, idTratamiento, camposNuevosTrat, bovedaClinicaActualizada = null, bovedaIdentidadActualizada = null, nuevoServicio = null) {
   const passwordSesion = obtenerLlaveSesion();
+  const pacRef = doc(db, "pacientes", hashPaciente);
   const tratRef = doc(db, "pacientes", hashPaciente, "tratamientos", idTratamiento);
 
-  const payloadUpdate = { ...camposNuevos };
-
+  // 1. Si se editó algún campo de Tratamiento o Bóveda Clínica
+  const payloadUpdateTrat = { ...camposNuevosTrat };
   if (bovedaClinicaActualizada) {
-    payloadUpdate.boveda_clinica = await cifrarObjeto({
+    payloadUpdateTrat.boveda_clinica = await cifrarObjeto({
       diagnostico: bovedaClinicaActualizada.diagnostico || "",
       observaciones: bovedaClinicaActualizada.observaciones || ""
     }, passwordSesion);
   }
+  if (Object.keys(payloadUpdateTrat).length > 0) {
+    await updateDoc(tratRef, payloadUpdateTrat);
+  }
 
-  await updateDoc(tratRef, payloadUpdate);
-  await setDoc(doc(db, "pacientes", hashPaciente), { ultima_modificacion: serverTimestamp() }, { merge: true });
+  // 2. Si se editó Identidad (RUT, Nombre, Apellido, Cama) o Servicio en la Zona Azul
+  const payloadUpdatePac = { ultima_modificacion: serverTimestamp() };
+  if (nuevoServicio !== null) {
+    payloadUpdatePac.servicio_actual = nuevoServicio.trim().toUpperCase();
+  }
+  if (bovedaIdentidadActualizada) {
+    payloadUpdatePac.boveda_identidad = await cifrarObjeto({
+      rut: bovedaIdentidadActualizada.rut.trim().toUpperCase(),
+      nombre: bovedaIdentidadActualizada.nombre.trim().toUpperCase(),
+      apellido: bovedaIdentidadActualizada.apellido.trim().toUpperCase(),
+      cama: bovedaIdentidadActualizada.cama.trim().toUpperCase()
+    }, passwordSesion);
+  }
+  await setDoc(pacRef, payloadUpdatePac, { merge: true });
   await setDoc(doc(db, "sistema_config", "pulso_tiempo_real"), { ts: Date.now() }, { merge: true });
+
   return { exito: true };
 }
 
@@ -448,5 +465,23 @@ export async function obtenerNotificacionesDescifradas() {
     return lista;
   } catch (e) {
     return [];
+  }
+}
+
+export async function eliminarNotificacionPROA(idNotif) {
+  try {
+    const refNotif = doc(db, "sistema_config", "registro_notificaciones");
+    const snap = await getDoc(refNotif);
+    if (!snap.exists() || !Array.isArray(snap.data().items)) return { exito: false };
+
+    const filtradas = snap.data().items.filter(item => item.id !== idNotif);
+    await setDoc(refNotif, {
+      items: filtradas,
+      actualizado_ms: Date.now()
+    }, { merge: true });
+    return { exito: true };
+  } catch (e) {
+    console.warn("Error al eliminar notificación:", e);
+    return { exito: false };
   }
 }

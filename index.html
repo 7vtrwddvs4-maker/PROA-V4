@@ -183,29 +183,40 @@
             <span>Auditoría Visación (QFs)</span>
           </button>
 
-          <!-- Selector de Tema: Día / Noche / Automático -->
-          <div class="theme-switcher-pill" title="Modo de apariencia: Día, Noche o Automático según tu sistema">
-            <button type="button" id="theme-btn-light" class="theme-btn" onclick="cambiarTemaPROA('LIGHT')">☀️ Día</button>
-            <button type="button" id="theme-btn-dark" class="theme-btn" onclick="cambiarTemaPROA('DARK')">🌙 Noche</button>
-            <button type="button" id="theme-btn-auto" class="theme-btn active" onclick="cambiarTemaPROA('AUTO')">🌗 Auto</button>
-          </div>
+          <!-- Barra de Iconos Circulares Estilo FarmaPerfil -->
+          <div class="farmaperfil-icon-bar">
+            <!-- 1. Campana de Notificaciones -->
+            <div class="notif-wrapper">
+              <button type="button" class="fp-circle-btn" onclick="togglePanelNotificaciones()" title="Historial de Notificaciones PROA">
+                <span class="material-icons-round">notifications</span>
+                <span id="notif-badge" class="notif-badge-count" style="display: none;">0</span>
+              </button>
 
-          <!-- Botón de Notificaciones en Vivo -->
-          <div class="notif-wrapper">
-            <button type="button" class="btn-notif-bell" onclick="togglePanelNotificaciones()" title="Historial de Notificaciones PROA">
-              <span class="material-icons-round" style="font-size: 20px;">notifications</span>
-              <span id="notif-badge" class="notif-badge-count" style="display: none;">0</span>
-            </button>
-
-            <div id="panel-notificaciones" class="notif-dropdown-panel">
-              <div class="notif-panel-header">
-                <span>🔔 Registro de Actividad Clínica</span>
-                <button onclick="cargarNotificacionesEnVivo()" style="border:none; background:none; color:#0066cc; font-size:11px; font-weight:700; cursor:pointer;">Actualizar</button>
-              </div>
-              <div id="lista-notificaciones-dom" class="notif-list-scroll">
-                <div style="padding: 20px; text-align: center; color: #94a3b8; font-size: 12px;">Sin notificaciones recientes.</div>
+              <div id="panel-notificaciones" class="notif-dropdown-panel">
+                <div class="notif-panel-header">
+                  <span>🔔 Registro de Actividad Clínica</span>
+                  <button onclick="cargarNotificacionesEnVivo()" style="border:none; background:none; color:#0066cc; font-size:11px; font-weight:700; cursor:pointer;">Actualizar</button>
+                </div>
+                <div id="lista-notificaciones-dom" class="notif-list-scroll">
+                  <div style="padding: 20px; text-align: center; color: #94a3b8; font-size: 12px;">Sin notificaciones recientes.</div>
+                </div>
               </div>
             </div>
+
+            <!-- 2. Botón Home (Volver al Login / Cambiar de Cuenta) -->
+            <button type="button" class="fp-circle-btn" onclick="irAInicioFarmaPerfil()" title="Cerrar Sesión / Cambiar de Cuenta">
+              <span class="material-icons-round">home</span>
+            </button>
+
+            <!-- 3. Botón Tour Guiado Interactivo PROA 4.0 -->
+            <button type="button" class="fp-circle-btn fp-help-green" onclick="mostrarAyudaTecladoPROA()" title="Iniciar Tour Guiado por PROA 4.0">
+              <span class="material-icons-round">help_outline</span>
+            </button>
+
+            <!-- 4. Botón Modo Día / Noche / Auto -->
+            <button type="button" id="btn-fp-theme" class="fp-circle-btn" onclick="ciclarTemaFarmaPerfil()" title="Cambiar Modo: Día / Noche / Automático">
+              <span class="material-icons-round" id="icon-fp-theme">dark_mode</span>
+            </button>
           </div>
 
           <div class="user-info">
