@@ -1684,3 +1684,54 @@ body.dark-mode .btn-card-action {
 }
 body.dark-mode .ac-popup-menu { background: #1e293b !important; border-color: #475569 !important; }
 body.dark-mode .ac-popup-item { color: #f1f5f9 !important; border-color: #334155 !important; }
+
+/* ================= PARPADEO EN VIVO (ESTILO FARMACONTROL) ================= */
+.live-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #16a34a;
+  display: inline-block;
+  position: relative;
+  animation: pulseDotBlink 1.6s infinite ease-in-out;
+}
+
+.live-pulse-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background-color: #22c55e;
+  animation: pulseDotRing 1.6s infinite ease-out;
+}
+
+@keyframes pulseDotBlink {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.88);
+  }
+}
+
+@keyframes pulseDotRing {
+  0% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+body.dark-mode .live-badge-pill {
+  background: rgba(22, 163, 74, 0.2) !important;
+  color: #4ade80 !important;
+}
+
+body.dark-mode .live-pulse-dot {
+  background-color: #4ade80;
+}
