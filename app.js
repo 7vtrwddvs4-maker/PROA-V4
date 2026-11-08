@@ -977,13 +977,13 @@ window.renderizarTablaMatriz = function() {
          </select>`
       : `<span>${estUpper}</span>`;
 
-    const celdaAzulEditable = (campo, valor, catalogoAC = "", minAncho = 95) => {
+    const celdaAzulEditable = (campo, valor, catalogoAC = "", anchoPx = 65) => {
       const valLimpio = limpiarNombre(valor || "");
       const valSeguro = String(valLimpio).replace(/"/g, "&quot;");
-      const anchoCalc = Math.max(minAncho, valLimpio.length * 7.4 + 20);
       const attrAC = catalogoAC ? `data-ac="${catalogoAC}"` : "";
       return `<input type="text" class="matrix-blue-input nav-field"
-                     style="min-width: ${anchoCalc}px;"
+                     style="width: ${anchoPx}px; min-width: ${anchoPx}px;"
+                     title="${valSeguro}"
                      ${attrAC}
                      data-hash="${f.hashPaciente}"
                      data-idtrat="${f.idTratamiento}"
@@ -992,15 +992,16 @@ window.renderizarTablaMatriz = function() {
                      onchange="guardarCeldaMatrizQF('${f.hashPaciente}', '${f.idTratamiento}', '${campo}', this.value)">`;
     };
 
-    const celdaEditableQF = (campo, valor, catalogoAC = "", minAncho = 135) => {
+    const celdaEditableQF = (campo, valor, catalogoAC = "", anchoPx = 75) => {
       const valLimpio = limpiarNombre(valor || "");
       const valSeguro = String(valLimpio).replace(/"/g, "&quot;");
-      if (!esQF) return `<span style="padding: 0 4px;">${valSeguro}</span>`;
-
-      const anchoCalculado = Math.max(minAncho, valLimpio.length * 7.6 + 24);
+      if (!esQF) {
+        return `<span class="cell-readonly-ellipsis" style="width: ${anchoPx}px; max-width: ${anchoPx}px;" title="${valSeguro}">${valSeguro}</span>`;
+      }
       const attrAC = catalogoAC ? `data-ac="${catalogoAC}"` : "";
       return `<input type="text" class="matrix-editable-input nav-field"
-                     style="min-width: ${anchoCalculado}px;"
+                     style="width: ${anchoPx}px; min-width: ${anchoPx}px;"
+                     title="${valSeguro}"
                      ${attrAC}
                      data-hash="${f.hashPaciente}"
                      data-idtrat="${f.idTratamiento}"
@@ -1018,103 +1019,103 @@ window.renderizarTablaMatriz = function() {
     return `
       <tr>
         <td class="td-estado-cell ${claseColorEstado}">${celdaEstadoHTML}</td>
-        <td class="td-azul">${celdaAzulEditable("antimicrobiano", f.antimicrobiano, "antimicrobianos", 175)}</td>
-        <td class="td-azul" style="text-align:center;">${celdaAzulEditable("carga", f.carga, "", 55)}</td>
-        <td class="td-azul">${celdaAzulEditable("dosis", f.dosis, "dosis", 85)}</td>
-        <td class="td-azul">${celdaAzulEditable("frecuencia", f.frecuencia, "frecuencias", 75)}</td>
-        <td class="td-azul">${celdaAzulEditable("fecha_inicio", f.fecha_inicio, "", 90)}</td>
+        <td class="td-azul">${celdaAzulEditable("antimicrobiano", f.antimicrobiano, "antimicrobianos", 118)}</td>
+        <td class="td-azul" style="text-align:center;">${celdaAzulEditable("carga", f.carga, "", 32)}</td>
+        <td class="td-azul">${celdaAzulEditable("dosis", f.dosis, "dosis", 48)}</td>
+        <td class="td-azul">${celdaAzulEditable("frecuencia", f.frecuencia, "frecuencias", 44)}</td>
+        <td class="td-azul">${celdaAzulEditable("fecha_inicio", f.fecha_inicio, "", 58)}</td>
         <td class="semaforo ${semG}">${m.tGracia}</td>
         <td class="semaforo ${semA}">${m.tAut}</td>
-        <td class="td-azul">${celdaAzulEditable("servicio", f.servicio, "servicios", 105)}</td>
-        <td class="td-azul">${celdaAzulEditable("cama", f.cama, "", 85)}</td>
-        <td class="td-azul">${celdaAzulEditable("nombre", f.nombre, "", 105)}</td>
-        <td class="td-azul">${celdaAzulEditable("apellido", f.apellido, "", 105)}</td>
-        <td class="td-azul">${celdaAzulEditable("rut", f.rut, "", 100)}</td>
-        <td class="td-azul">${celdaAzulEditable("digitador", f.digitador, "digitadores", 130)}</td>
-        <!-- ZONA VERDE EDITABLE (W a Z - Exclusiva QF) -->
-        <td class="td-verde">${celdaEditableQF("diagnostico", f.diagnostico, "diagnosticos")}</td>
-        <td class="td-verde">${celdaEditableQF("tipo_tratamiento", f.tipo_tratamiento, "tipoTto")}</td>
-        <td class="td-verde">${celdaEditableQF("tipo_terapia", f.tipo_terapia, "tipoTerapia")}</td>
-        <td class="td-verde">${celdaEditableQF("lugar_infeccion", f.lugar_infeccion, "lugarInf")}</td>
-        <!-- ZONA AMARILLA EDITABLE (AA a AG - Exclusiva QF) -->
-        <td class="td-amarilla">${celdaEditableQF("conducta", f.conducta, "estadoClinico")}</td>
+        <td class="td-azul">${celdaAzulEditable("servicio", f.servicio, "servicios", 62)}</td>
+        <td class="td-azul">${celdaAzulEditable("cama", f.cama, "", 38)}</td>
+        <td class="td-azul">${celdaAzulEditable("nombre", f.nombre, "", 56)}</td>
+        <td class="td-azul">${celdaAzulEditable("apellido", f.apellido, "", 56)}</td>
+        <td class="td-azul">${celdaAzulEditable("rut", f.rut, "", 66)}</td>
+        <td class="td-azul">${celdaAzulEditable("digitador", f.digitador, "digitadores", 68)}</td>
+        <!-- ZONA VERDE SIEMPRE A LA VISTA (W a Z) -->
+        <td class="td-verde">${celdaEditableQF("diagnostico", f.diagnostico, "diagnosticos", 86)}</td>
+        <td class="td-verde">${celdaEditableQF("tipo_tratamiento", f.tipo_tratamiento, "tipoTto", 62)}</td>
+        <td class="td-verde">${celdaEditableQF("tipo_terapia", f.tipo_terapia, "tipoTerapia", 60)}</td>
+        <td class="td-verde">${celdaEditableQF("lugar_infeccion", f.lugar_infeccion, "lugarInf", 68)}</td>
+        <!-- ZONA AMARILLA (AA a AG) -->
+        <td class="td-amarilla">${celdaEditableQF("conducta", f.conducta, "estadoClinico", 95)}</td>
         <td class="td-amarilla" style="text-align:center;">${celdaDiasAutHTML}</td>
-        <td class="td-amarilla">${celdaEditableQF("uso_adecuado", f.uso_adecuado, "usoAdecuado")}</td>
-        <td class="td-amarilla">${celdaEditableQF("observaciones", f.observaciones, "")}</td>
-        <td class="td-amarilla">${celdaEditableQF("visador", f.visador, "visadores")}</td>
-        <td class="td-amarilla">${celdaEditableQF("fecha_visado", f.fecha_visado, "")}</td>
-        <td class="td-amarilla">${celdaEditableQF("paciente_no_encontrado", f.paciente_no_encontrado, "pacNoEncontrado")}</td>
+        <td class="td-amarilla">${celdaEditableQF("uso_adecuado", f.uso_adecuado, "usoAdecuado", 110)}</td>
+        <td class="td-amarilla">${celdaEditableQF("observaciones", f.observaciones, "", 110)}</td>
+        <td class="td-amarilla">${celdaEditableQF("visador", f.visador, "visadores", 85)}</td>
+        <td class="td-amarilla">${celdaEditableQF("fecha_visado", f.fecha_visado, "", 64)}</td>
+        <td class="td-amarilla">${celdaEditableQF("paciente_no_encontrado", f.paciente_no_encontrado, "pacNoEncontrado", 95)}</td>
       </tr>
     `;
   }).join("");
 
-  // FILA FINAL DE INGRESO EN VIVO DIRECTO EN LA MATRIZ GENERAL
+  // FILA FINAL DE INGRESO EN VIVO DIRECTO EN LA MATRIZ GENERAL (CON ANCHOS COMPACTOS)
   const hoyCL = hoyFormateadoCL();
   const digActual = PERFIL_ACTUAL.nombre || "FRANCISCO BARRA";
 
   const selectNuevoEstadoMatriz = esQF
     ? `<select id="nm-estado" class="matrix-inline-select nav-field">
-         <option value="SOLICITUD" selected>➕ SOLICITUD</option>
-         <option value="APROBADO">➕ APROBADO</option>
-         <option value="RECHAZADO">➕ RECHAZADO</option>
+         <option value="SOLICITUD" selected>➕ SOLIC.</option>
+         <option value="APROBADO">➕ APROB.</option>
+         <option value="RECHAZADO">➕ RECHAZ.</option>
        </select>`
-    : `<span title="TENS solo ingresa en estado SOLICITUD">➕ SOLICITUD</span>
+    : `<span title="TENS solo ingresa en estado SOLICITUD" style="font-size:9.5px;">➕ SOLIC.</span>
        <input type="hidden" id="nm-estado" value="SOLICITUD">`;
 
   const celdasNuevasVerdesAmarillas = esQF
     ? `
-      <td class="td-verde"><input type="text" id="nm-diag" data-ac="diagnosticos" class="matrix-editable-input nav-field" placeholder="+ Diagnóstico..."></td>
-      <td class="td-verde"><input type="text" id="nm-tipotto" data-ac="tipoTto" class="matrix-editable-input nav-field" placeholder="+ Tipo Tto..."></td>
-      <td class="td-verde"><input type="text" id="nm-tipoterapia" data-ac="tipoTerapia" class="matrix-editable-input nav-field" placeholder="+ Terapia..."></td>
-      <td class="td-verde"><input type="text" id="nm-lugar" data-ac="lugarInf" class="matrix-editable-input nav-field" placeholder="+ Origen..."></td>
-      <td class="td-amarilla"><input type="text" id="nm-conducta" data-ac="estadoClinico" class="matrix-editable-input nav-field" placeholder="+ Conducta..."></td>
+      <td class="td-verde"><input type="text" id="nm-diag" data-ac="diagnosticos" class="matrix-editable-input nav-field" style="width:86px; min-width:86px;" placeholder="+ Diag..."></td>
+      <td class="td-verde"><input type="text" id="nm-tipotto" data-ac="tipoTto" class="matrix-editable-input nav-field" style="width:62px; min-width:62px;" placeholder="+ Tto..."></td>
+      <td class="td-verde"><input type="text" id="nm-tipoterapia" data-ac="tipoTerapia" class="matrix-editable-input nav-field" style="width:60px; min-width:60px;" placeholder="+ Terap..."></td>
+      <td class="td-verde"><input type="text" id="nm-lugar" data-ac="lugarInf" class="matrix-editable-input nav-field" style="width:68px; min-width:68px;" placeholder="+ Lugar..."></td>
+      <td class="td-amarilla"><input type="text" id="nm-conducta" data-ac="estadoClinico" class="matrix-editable-input nav-field" style="width:95px; min-width:95px;" placeholder="+ Conducta..."></td>
       <td class="td-amarilla" style="text-align:center;"><input type="number" id="nm-dias" class="matrix-inline-days nav-field" placeholder="Días"></td>
-      <td class="td-amarilla"><input type="text" id="nm-uso" data-ac="usoAdecuado" class="matrix-editable-input nav-field" placeholder="+ Uso ATB..."></td>
-      <td class="td-amarilla"><input type="text" id="nm-obs" class="matrix-editable-input nav-field" placeholder="+ Observaciones..."></td>
-      <td class="td-amarilla"><input type="text" id="nm-visador" data-ac="visadores" class="matrix-editable-input nav-field" value="${digActual}" placeholder="+ Visador..."></td>
-      <td class="td-amarilla"><input type="text" id="nm-fechavis" class="matrix-editable-input nav-field" value="${hoyCL}"></td>
+      <td class="td-amarilla"><input type="text" id="nm-uso" data-ac="usoAdecuado" class="matrix-editable-input nav-field" style="width:110px; min-width:110px;" placeholder="+ Uso ATB..."></td>
+      <td class="td-amarilla"><input type="text" id="nm-obs" class="matrix-editable-input nav-field" style="width:110px; min-width:110px;" placeholder="+ Obs..."></td>
+      <td class="td-amarilla"><input type="text" id="nm-visador" data-ac="visadores" class="matrix-editable-input nav-field" style="width:85px; min-width:85px;" value="${digActual}"></td>
+      <td class="td-amarilla"><input type="text" id="nm-fechavis" class="matrix-editable-input nav-field" style="width:64px; min-width:64px;" value="${hoyCL}"></td>
       <td class="td-amarilla" style="display:flex; gap:4px; align-items:center;">
-        <input type="text" id="nm-pacnoenc" data-ac="pacNoEncontrado" class="matrix-editable-input nav-field new-mat-trigger-save" placeholder="Opcional...">
-        <button type="button" class="btn-add-med nav-field" style="margin:0; padding:4px 8px; font-size:10px; background:#22c55e; color:#fff; border:none;" onclick="guardarNuevoPacienteDesdeMatriz()">💾 Guardar</button>
+        <input type="text" id="nm-pacnoenc" data-ac="pacNoEncontrado" class="matrix-editable-input nav-field new-mat-trigger-save" style="width:75px; min-width:75px;" placeholder="Opcional...">
+        <button type="button" class="btn-add-med nav-field" style="margin:0; padding:3px 7px; font-size:9.5px; background:#22c55e; color:#fff; border:none;" onclick="guardarNuevoPacienteDesdeMatriz()">💾</button>
       </td>
     `
     : `
-      <td class="td-verde"><input type="text" class="matrix-input-disabled-tens" disabled placeholder="Exclusivo QF"></td>
-      <td class="td-verde"><input type="text" class="matrix-input-disabled-tens" disabled placeholder="Exclusivo QF"></td>
-      <td class="td-verde"><input type="text" class="matrix-input-disabled-tens" disabled placeholder="Exclusivo QF"></td>
-      <td class="td-verde"><input type="text" class="matrix-input-disabled-tens" disabled placeholder="Exclusivo QF"></td>
-      <td class="td-amarilla"><input type="text" class="matrix-input-disabled-tens" disabled placeholder="Exclusivo QF"></td>
-      <td class="td-amarilla"><input type="text" class="matrix-input-disabled-tens" style="min-width:55px;" disabled placeholder="-"></td>
-      <td class="td-amarilla"><input type="text" class="matrix-input-disabled-tens" disabled placeholder="Exclusivo QF"></td>
-      <td class="td-amarilla"><input type="text" class="matrix-input-disabled-tens" disabled placeholder="Exclusivo QF"></td>
-      <td class="td-amarilla"><input type="text" class="matrix-input-disabled-tens" disabled placeholder="Exclusivo QF"></td>
-      <td class="td-amarilla"><input type="text" class="matrix-input-disabled-tens" disabled placeholder="-"></td>
+      <td class="td-verde"><input type="text" class="matrix-input-disabled-tens" style="width:86px; min-width:86px;" disabled placeholder="QF"></td>
+      <td class="td-verde"><input type="text" class="matrix-input-disabled-tens" style="width:62px; min-width:62px;" disabled placeholder="QF"></td>
+      <td class="td-verde"><input type="text" class="matrix-input-disabled-tens" style="width:60px; min-width:60px;" disabled placeholder="QF"></td>
+      <td class="td-verde"><input type="text" class="matrix-input-disabled-tens" style="width:68px; min-width:68px;" disabled placeholder="QF"></td>
+      <td class="td-amarilla"><input type="text" class="matrix-input-disabled-tens" style="width:95px; min-width:95px;" disabled placeholder="QF"></td>
+      <td class="td-amarilla"><input type="text" class="matrix-input-disabled-tens" style="width:45px; min-width:45px;" disabled placeholder="-"></td>
+      <td class="td-amarilla"><input type="text" class="matrix-input-disabled-tens" style="width:110px; min-width:110px;" disabled placeholder="QF"></td>
+      <td class="td-amarilla"><input type="text" class="matrix-input-disabled-tens" style="width:110px; min-width:110px;" disabled placeholder="QF"></td>
+      <td class="td-amarilla"><input type="text" class="matrix-input-disabled-tens" style="width:85px; min-width:85px;" disabled placeholder="QF"></td>
+      <td class="td-amarilla"><input type="text" class="matrix-input-disabled-tens" style="width:64px; min-width:64px;" disabled placeholder="-"></td>
       <td class="td-amarilla">
-        <button type="button" class="btn-add-med nav-field" style="margin:0; padding:5px 10px; font-size:10.5px; width:100%; justify-content:center; background:#22c55e; color:#fff; border:none;" onclick="guardarNuevoPacienteDesdeMatriz()">➕ Guardar Solicitud</button>
+        <button type="button" class="btn-add-med nav-field" style="margin:0; padding:4px 8px; font-size:10px; width:100%; justify-content:center; background:#22c55e; color:#fff; border:none;" onclick="guardarNuevoPacienteDesdeMatriz()">➕ Guardar</button>
       </td>
     `;
 
   const htmlFilaNueva = `
     <tr class="tr-nuevo-matriz">
       <td class="td-estado-cell est-sheet-solicitud">${selectNuevoEstadoMatriz}</td>
-      <td class="td-azul"><input type="text" id="nm-atb" data-ac="antimicrobianos" class="matrix-blue-input nav-field" style="min-width:175px;" placeholder="➕ Nuevo Antibiótico..."></td>
+      <td class="td-azul"><input type="text" id="nm-atb" data-ac="antimicrobianos" class="matrix-blue-input nav-field" style="width:118px; min-width:118px;" placeholder="➕ Antibiótico..."></td>
       <td class="td-azul">
-        <select id="nm-carga" class="matrix-blue-input nav-field" style="min-width:58px;">
+        <select id="nm-carga" class="matrix-blue-input nav-field" style="width:36px; min-width:36px; padding:0 2px;">
           <option value="NO">NO</option>
           <option value="SI">SI</option>
         </select>
       </td>
-      <td class="td-azul"><input type="text" id="nm-dosis" data-ac="dosis" class="matrix-blue-input nav-field" style="min-width:85px;" placeholder="+ Dosis..."></td>
-      <td class="td-azul"><input type="text" id="nm-frec" data-ac="frecuencias" class="matrix-blue-input nav-field" style="min-width:75px;" placeholder="+ Frec..."></td>
-      <td class="td-azul"><input type="text" id="nm-fecha" class="matrix-blue-input" style="min-width:90px;" value="${hoyCL}" tabindex="-1"></td>
-      <td class="semaforo" style="background:#e2e8f0; color:#475569;">NUEVO</td>
+      <td class="td-azul"><input type="text" id="nm-dosis" data-ac="dosis" class="matrix-blue-input nav-field" style="width:48px; min-width:48px;" placeholder="+Dosis"></td>
+      <td class="td-azul"><input type="text" id="nm-frec" data-ac="frecuencias" class="matrix-blue-input nav-field" style="width:44px; min-width:44px;" placeholder="+Frec"></td>
+      <td class="td-azul"><input type="text" id="nm-fecha" class="matrix-blue-input" style="width:58px; min-width:58px;" value="${hoyCL}" tabindex="-1"></td>
+      <td class="semaforo" style="background:#e2e8f0; color:#475569; font-size:9px;">NVO</td>
       <td class="semaforo" style="background:#e2e8f0; color:#475569;">-</td>
-      <td class="td-azul"><input type="text" id="nm-servicio" data-ac="servicios" class="matrix-blue-input nav-field" style="min-width:105px;" placeholder="+ Servicio..."></td>
-      <td class="td-azul"><input type="text" id="nm-cama" class="matrix-blue-input nav-field" style="min-width:85px;" placeholder="+ Cama..."></td>
-      <td class="td-azul"><input type="text" id="nm-nombre" class="matrix-blue-input nav-field" style="min-width:105px;" placeholder="+ Nombre..."></td>
-      <td class="td-azul"><input type="text" id="nm-apellido" class="matrix-blue-input nav-field" style="min-width:105px;" placeholder="+ Apellido..."></td>
-      <td class="td-azul"><input type="text" id="nm-rut" class="matrix-blue-input nav-field" style="min-width:100px;" placeholder="+ RUT..." oninput="this.value = formatearRutConGuionAutomatico(this.value)"></td>
-      <td class="td-azul"><input type="text" id="nm-digitador" data-ac="digitadores" class="matrix-blue-input nav-field ${!esQF ? 'new-mat-trigger-save' : ''}" style="min-width:130px;" value="${digActual}"></td>
+      <td class="td-azul"><input type="text" id="nm-servicio" data-ac="servicios" class="matrix-blue-input nav-field" style="width:62px; min-width:62px;" placeholder="+Serv."></td>
+      <td class="td-azul"><input type="text" id="nm-cama" class="matrix-blue-input nav-field" style="width:38px; min-width:38px;" placeholder="+Cama"></td>
+      <td class="td-azul"><input type="text" id="nm-nombre" class="matrix-blue-input nav-field" style="width:56px; min-width:56px;" placeholder="+Nombre"></td>
+      <td class="td-azul"><input type="text" id="nm-apellido" class="matrix-blue-input nav-field" style="width:56px; min-width:56px;" placeholder="+Apell."></td>
+      <td class="td-azul"><input type="text" id="nm-rut" class="matrix-blue-input nav-field" style="width:66px; min-width:66px;" placeholder="+RUT" oninput="this.value = formatearRutConGuionAutomatico(this.value)"></td>
+      <td class="td-azul"><input type="text" id="nm-digitador" data-ac="digitadores" class="matrix-blue-input nav-field ${!esQF ? 'new-mat-trigger-save' : ''}" style="width:68px; min-width:68px;" value="${digActual}"></td>
       ${celdasNuevasVerdesAmarillas}
     </tr>
   `;

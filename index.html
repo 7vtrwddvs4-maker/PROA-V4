@@ -227,11 +227,11 @@
         </div>
       </header>
 
-      <!-- 2. VENTANA PROA INGRESO -->
+      <!-- 2. VENTANA PROA INGRESO (COMPACTA ESTILO FARMACONTROL MANTENIENDO ESTÉTICA PROA) -->
       <section class="ingreso-window">
         <div class="ingreso-header">
           <div class="ingreso-title-wrap">
-            <span class="material-icons-round" style="color: #334155;">post_add</span>
+            <span class="material-icons-round" style="color: #334155; font-size: 18px;">post_add</span>
             <span>PROA 4.0 Ingreso</span>
           </div>
           <div class="status-pill-ready" id="status-ingreso-pill">
@@ -243,13 +243,14 @@
 
         <div class="ingreso-body" id="cuerpo-formulario-ingreso">
           
-          <div class="section-block">
-            <div class="section-heading">
-              <span class="material-icons-round" style="font-size: 17px;">badge</span>
+          <!-- BLOQUE 1: IDENTIFICACIÓN EN 1 SOLA FILA HORIZONTAL -->
+          <div class="section-block compact-block">
+            <div class="section-heading compact-heading">
+              <span class="material-icons-round" style="font-size: 15px;">badge</span>
               <span>Identificación del Paciente</span>
             </div>
             
-            <div class="form-grid-top" style="margin-top: 10px;">
+            <div class="form-grid-paciente-1row">
               <div class="field-group">
                 <label>RUT O NOMBRE</label>
                 <input type="text" id="in-rut" class="proa-input nav-field" placeholder="Buscar o Ingresar..." autocomplete="off" oninput="alEscribirRutONombre(this)" onkeydown="manejarTecladoSugerenciasRut(event)">
@@ -257,25 +258,22 @@
               </div>
               <div class="field-group">
                 <label>NOMBRES</label>
-                <input type="text" id="in-nombres" class="proa-input nav-field" placeholder="Nombres del paciente">
+                <input type="text" id="in-nombres" class="proa-input nav-field" placeholder="Nombres">
               </div>
               <div class="field-group">
                 <label>APELLIDOS</label>
-                <input type="text" id="in-apellidos" class="proa-input nav-field" placeholder="Apellidos del paciente">
+                <input type="text" id="in-apellidos" class="proa-input nav-field" placeholder="Apellidos">
               </div>
-            </div>
-
-            <div class="form-grid-second">
               <div class="field-group">
                 <label>SERVICIO ACTUAL</label>
-                <input type="text" id="in-servicio" data-ac="servicios" class="proa-input nav-field" placeholder="Escriba o elija..." autocomplete="off">
+                <input type="text" id="in-servicio" data-ac="servicios" class="proa-input nav-field" placeholder="Servicio..." autocomplete="off">
               </div>
               <div class="field-group">
                 <label>CAMA (LIBRE)</label>
-                <input type="text" id="in-cama" class="proa-input nav-field" placeholder="EJ: 15, PASILLO" autocomplete="off">
+                <input type="text" id="in-cama" class="proa-input nav-field" placeholder="Ej: 15" autocomplete="off">
               </div>
               <div class="field-group">
-                <label>FECHA INGRESO (AUTO)</label>
+                <label>FECHA INGRESO</label>
                 <input type="date" id="in-fecha" class="proa-input" tabindex="-1">
               </div>
               <div class="field-group">
@@ -285,25 +283,30 @@
             </div>
           </div>
 
-          <div class="section-block">
-            <div class="section-heading">
-              <span class="material-icons-round" style="font-size: 17px;">medication</span>
-              <span>Prescripción Antimicrobiana</span>
+          <!-- BLOQUE 2: PRESCRIPCIÓN + BOTONES EN LA MISMA LÍNEA -->
+          <div class="section-block compact-block" style="margin-bottom: 0;">
+            <div class="prescripcion-header-inline">
+              <div class="section-heading compact-heading" style="margin-bottom: 0;">
+                <span class="material-icons-round" style="font-size: 15px;">medication</span>
+                <span>Prescripción Antimicrobiana</span>
+                <span class="section-subheading-inline">• ESQUEMA DE TRATAMIENTO INICIAL</span>
+              </div>
             </div>
-            <div class="section-subheading">ESQUEMA DE TRATAMIENTO INICIAL</div>
 
             <div id="contenedor-filas-medicamentos"></div>
 
-            <button type="button" id="btn-agregar-med" class="btn-add-med nav-field" onclick="agregarFilaMedicamento(true)">
-              <span class="material-icons-round" style="font-size: 16px;">add_circle</span>
-              <span>Agregar otro medicamento</span>
-            </button>
-          </div>
+            <div class="ingreso-actions-bar">
+              <button type="button" id="btn-agregar-med" class="btn-add-med nav-field" style="margin-top: 0;" onclick="agregarFilaMedicamento(true)">
+                <span class="material-icons-round" style="font-size: 15px;">add_circle</span>
+                <span>+ Agregar otro medicamento</span>
+              </button>
 
-          <button type="button" id="btn-submit-ingreso" class="btn-registrar-proa nav-field" onclick="registrarEnProa()">
-            <span class="material-icons-round" style="font-size: 19px;">cloud_upload</span>
-            <span>REGISTRAR EN PROA</span>
-          </button>
+              <button type="button" id="btn-submit-ingreso" class="btn-registrar-proa btn-registrar-compact nav-field" onclick="registrarEnProa()">
+                <span class="material-icons-round" style="font-size: 17px;">cloud_upload</span>
+                <span>REGISTRAR EN PROA</span>
+              </button>
+            </div>
+          </div>
 
         </div>
       </section>
@@ -356,29 +359,29 @@
                 <th class="th-azul">ANTIMICROBIANO</th>
                 <th class="th-azul">CARGA</th>
                 <th class="th-azul">DOSIS</th>
-                <th class="th-azul">FRECUENCIA</th>
+                <th class="th-azul">FREC.</th>
                 <th class="th-azul">FECHA</th>
-                <th class="th-azul">T. GRACIA</th>
-                <th class="th-azul">T. AUTORIZ.</th>
+                <th class="th-azul" title="Tiempo de Gracia">T. GR.</th>
+                <th class="th-azul" title="Tiempo de Autorización">T. AUT.</th>
                 <th class="th-azul">SERVICIO</th>
                 <th class="th-azul">CAMA</th>
                 <th class="th-azul">NOMBRE</th>
                 <th class="th-azul">APELLIDO</th>
                 <th class="th-azul">RUT</th>
                 <th class="th-azul">DIGITADOR</th>
-                <!-- ZONA VERDE (W a Z) -->
+                <!-- ZONA VERDE (SIEMPRE VISIBLE SIN SCROLL) -->
                 <th class="th-verde">DIAGNÓSTICO</th>
-                <th class="th-verde">TIPO DE TRATAMIENTO</th>
-                <th class="th-verde">TIPO DE TERAPIA</th>
-                <th class="th-verde">LUGAR DE INFECCIÓN</th>
+                <th class="th-verde">TIPO TTO.</th>
+                <th class="th-verde">TERAPIA</th>
+                <th class="th-verde">LUGAR INF.</th>
                 <!-- ZONA AMARILLA (AA a AG) -->
                 <th class="th-amarilla">TRATAMIENTO</th>
-                <th class="th-amarilla">DIAS DE APROBACIÓN</th>
-                <th class="th-amarilla">USO ADECUADO DE ANTIMICROBIANO</th>
+                <th class="th-amarilla">DÍAS APROB.</th>
+                <th class="th-amarilla">USO ADECUADO ATB</th>
                 <th class="th-amarilla">OBSERVACIONES</th>
                 <th class="th-amarilla">VISADOR</th>
-                <th class="th-amarilla">FECHA</th>
-                <th class="th-amarilla">PACIENTE NO ENCONTRADO</th>
+                <th class="th-amarilla">FECHA VIS.</th>
+                <th class="th-amarilla">PAC. NO ENC.</th>
               </tr>
             </thead>
             <tbody id="proa-tbody"></tbody>
